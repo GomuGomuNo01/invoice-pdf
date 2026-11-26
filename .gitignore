@@ -1,0 +1,32 @@
+# Documentation interne : jamais versionnée
+docs-local/
+PLAN_DE_TRAVAIL*.md
+AUDIT*.md
+*.notes.md
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Backend
+backend/target/
+*.class
+*.log
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/test-results/
+frontend/playwright-report/
+
+# Sorties de test PDF
+**/pdf-output/
+
+# IDE et système
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
