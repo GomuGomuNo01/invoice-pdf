@@ -25,5 +25,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
     css: false,
+    // Les tests de parcours simulent la frappe au clavier : 5 s par défaut est trop court sur un poste chargé.
+    testTimeout: 20_000,
   },
 });
