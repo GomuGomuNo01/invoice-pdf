@@ -97,3 +97,11 @@ jobs:
         with:
           name: playwright-report
           path: frontend/playwright-report/
+
+  images:
+    name: Images Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Construction et essai des images
+        run: sh scripts/tester-images.sh
