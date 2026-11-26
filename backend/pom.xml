@@ -22,7 +22,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <openhtmltopdf.version>1.1.117</openhtmltopdf.version>
         <jsoup.version>1.24.1</jsoup.version>
-        <springdoc.version>3.1.1</springdoc.version>
+        <springdoc.version>3.2.1</springdoc.version>
     </properties>
 
     <dependencies>
