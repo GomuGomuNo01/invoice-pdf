@@ -1,0 +1,51 @@
+/*
+ * Design tokens. Les valeurs "pdf-*" sont identiques au gabarit PDF
+ * (backend/src/main/resources/templates/invoice.html).
+ * Couleur primaire : estimation du bleu foncé du modèle Word, à confirmer avec le fichier source.
+ */
+:root {
+  --pdf-primary: #1f3864;
+  --pdf-on-primary: #ffffff;
+  --pdf-text: #1a1a1a;
+  --pdf-muted: #4d4d4d;
+  --pdf-subtle: #6e6e6e;
+  --pdf-border: #bfbfbf;
+  --pdf-total-bg: #f2f2f2;
+  --pdf-font: 'Carlito', 'Calibri', 'Segoe UI', Arial, sans-serif;
+
+  --ui-bg: #f4f6fa;
+  --ui-surface: #ffffff;
+  --ui-text: #1a1a1a;
+  --ui-muted: #4f5868;
+  --ui-border: #c9cfd9;
+  --ui-primary: #1f3864;
+  --ui-primary-hover: #162a4c;
+  --ui-on-primary: #ffffff;
+  --ui-danger: #b3261e;
+  --ui-success: #1e6b3a;
+  --ui-focus: #f2b705;
+  --ui-font: system-ui, 'Segoe UI', Roboto, Arial, sans-serif;
+
+  --radius: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ui-bg: #11151c;
+    --ui-surface: #1a2029;
+    --ui-text: #eef1f6;
+    --ui-muted: #b4bccb;
+    --ui-border: #3a4352;
+    --ui-primary: #8fb0ea;
+    --ui-primary-hover: #a9c3f0;
+    --ui-on-primary: #0d1626;
+    --ui-danger: #ff8a80;
+    --ui-success: #7fd49b;
+  }
+}
