@@ -16,6 +16,17 @@ public final class Limits {
     public static final String MULTILINE_TEXT_REGEX = "^[^\\p{Cntrl}&&[^\\r\\n\\t]]*$";
     public static final String CONTROL_CHAR_MESSAGE = "Le texte contient des caractères non autorisés.";
 
+    /** SIRET (14 chiffres) ou SIREN (9 chiffres), espaces tolérés. Vide accepté. */
+    public static final String SIRET_REGEX = "^$|^(?:\\d ?){9}(?:(?:\\d ?){5})?$";
+    public static final String SIRET_MESSAGE = "Le SIRET compte 14 chiffres (ou 9 pour un SIREN).";
+    /** Chiffres, espaces, +, points, tirets et parenthèses, 30 caractères au plus. */
+    public static final String PHONE_REGEX = "^[0-9+().\\- ]{0,30}$";
+    public static final String PHONE_MESSAGE = "Le téléphone accepte des chiffres, des espaces et + . - ( ).";
+    /** IBAN : lettres et chiffres, espaces tolérés, 42 caractères au plus. */
+    public static final String IBAN_REGEX = "^$|^[A-Za-z]{2}[0-9]{2}[A-Za-z0-9 ]{10,38}$";
+    public static final String IBAN_MESSAGE = "L'IBAN commence par 2 lettres et 2 chiffres (ex. FR76 ...).";
+    public static final int MAX_EMAIL = 120;
+
     public static final int MAX_PAYMENT_TERMS_DAYS = 365;
     public static final int MAX_LINES = 100;
     public static final int MAX_NAME = 120;

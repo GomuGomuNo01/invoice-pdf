@@ -16,8 +16,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.invoicepdf.config.IssuerProperties;
 import com.invoicepdf.domain.ComputedInvoice;
 import com.invoicepdf.domain.InvoiceCalculator;
+import com.invoicepdf.domain.IssuerInfo;
 import com.invoicepdf.pdf.InvoicePdfRenderer;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,10 +34,12 @@ public class InvoiceController {
 
     private final InvoiceCalculator calculator;
     private final InvoicePdfRenderer renderer;
+    private final IssuerProperties defaultIssuer;
 
-    public InvoiceController(InvoiceCalculator calculator, InvoicePdfRenderer renderer) {
+    public InvoiceController(InvoiceCalculator calculator, InvoicePdfRenderer renderer, IssuerProperties defaultIssuer) {
         this.calculator = calculator;
         this.renderer = renderer;
+        this.defaultIssuer = defaultIssuer;
     }
 
     @Operation(summary = "Génère le PDF d'une facture",
@@ -51,7 +55,8 @@ public class InvoiceController {
     public ResponseEntity<byte[]> generatePdf(@Valid @RequestBody InvoiceRequest request) {
         long start = System.nanoTime();
         ComputedInvoice invoice = calculator.compute(request);
-        byte[] pdf = renderer.renderPdf(invoice);
+        IssuerInfo issuer = request.issuer() != null ? IssuerInfo.from(request.issuer()) : IssuerInfo.from(defaultIssuer);
+        byte[] pdf = renderer.renderPdf(invoice, issuer);
 
         // Journal technique uniquement : aucune donnée de la facture (données personnelles).
         LOG.info("pdf_generated id={} lines={} bytes={} durationMs={}",

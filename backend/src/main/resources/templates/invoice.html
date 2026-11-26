@@ -4,9 +4,10 @@
     <meta charset="UTF-8"/>
     <title th:text="|Facture ${invoice.invoiceNumber}|">Facture</title>
     <!--
-        Tokens du visuel (voir frontend/src/styles/tokens.css pour l'aperçu) :
-        primaire #1F3864, texte #1A1A1A, gris #6E6E6E, bordure #BFBFBF.
-        La couleur primaire est une estimation à confirmer avec le fichier Word source.
+        Tokens du visuel (identiques à frontend/src/styles/sheet.css) :
+        primaire #1F3864, texte #1A1A1A, gris #4D4D4D et #6E6E6E, filet #D9D9D9, fond total #F2F2F2.
+        Règles d'alignement : libellés à gauche, montants à droite, quantité et unité centrées,
+        contenu des cellules centré verticalement.
     -->
     <style>
         @page {
@@ -24,70 +25,95 @@
         body {
             font-family: Carlito, sans-serif;
             font-size: 10.5pt;
-            line-height: 1.3;
+            line-height: 1.35;
             color: #1A1A1A;
             margin: 0;
         }
-        .header { width: 100%; border-collapse: collapse; }
+        table { border-collapse: separate; border-spacing: 0; }
+
+        .header { width: 100%; }
         .header td { vertical-align: top; padding: 0; }
-        .issuer-name { font-size: 14pt; font-weight: bold; color: #1F3864; margin-bottom: 1mm; }
-        .issuer-extra { color: #4D4D4D; font-size: 9pt; margin-top: 1.5mm; }
-        .client { padding-top: 14mm !important; }
-        .client-label { font-weight: bold; margin-bottom: 1mm; }
-        .invoice-box-cell { width: 78mm; padding-top: 14mm !important; }
-        .invoice-box { width: 100%; border-collapse: collapse; }
-        .invoice-box .band {
+        .issuer-name { font-size: 15pt; font-weight: bold; color: #1F3864; margin-bottom: 1.2mm; }
+        .issuer-extra { color: #4D4D4D; font-size: 9pt; margin-top: 0.8mm; }
+        .issuer-extra.first { margin-top: 1.8mm; }
+
+        .parties td { padding-top: 12mm; }
+        .label-small {
+            font-size: 8pt;
+            font-weight: bold;
+            color: #6E6E6E;
+            text-transform: uppercase;
+            letter-spacing: 0.6pt;
+            margin-bottom: 1.5mm;
+        }
+        .client-name { font-weight: bold; font-size: 11pt; margin-bottom: 0.8mm; }
+        .client-cell { padding-right: 10mm !important; }
+
+        .invoice-box-cell { width: 80mm; }
+        .invoice-box { width: 100%; }
+        .invoice-box td { padding: 1.7mm 3mm; vertical-align: middle; border-bottom: 0.5pt solid #D9D9D9; }
+        .invoice-box td.band {
             background-color: #1F3864;
             color: #FFFFFF;
             font-weight: bold;
-            font-size: 22pt;
-            letter-spacing: 1pt;
-            text-align: right;
-            padding: 2.5mm 3mm;
+            font-size: 20pt;
+            letter-spacing: 2pt;
+            text-align: center;
+            padding: 3mm;
+            border-bottom: none;
         }
-        .invoice-box td.label { text-align: right; padding: 1.2mm 3mm 1.2mm 0; color: #4D4D4D; }
-        .invoice-box td.value { text-align: right; padding: 1.2mm 3mm 1.2mm 2mm; width: 30mm; white-space: nowrap; }
-        .invoice-box tr.due td { background-color: #1F3864; color: #FFFFFF; font-weight: bold; }
-        .invoice-box tr.due td.label { color: #FFFFFF; }
+        .invoice-box td.label { text-align: left; color: #4D4D4D; }
+        .invoice-box td.value { text-align: right; white-space: nowrap; font-weight: bold; }
+        .invoice-box td.due { background-color: #1F3864; padding: 0; border-bottom: none; }
+        .due-inner { width: 100%; }
+        .due-inner td { color: #FFFFFF; font-weight: bold; padding: 2.2mm 3mm; border: none; vertical-align: middle; }
+        .due-inner td.value { text-align: right; white-space: nowrap; }
 
         .lines {
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 10mm;
+            margin-top: 11mm;
             -fs-table-paginate: paginate;
-            -fs-border-rendering: no-bevel;
         }
         .lines thead { display: table-header-group; }
-        .lines th {
-            background-color: #1F3864;
+        .lines { table-layout: fixed; }
+        .lines th.head-band { background-color: #1F3864; padding: 0; }
+        .head-inner { width: 100%; table-layout: fixed; }
+        .lines .head-inner td {
             color: #FFFFFF;
             font-weight: bold;
             text-transform: uppercase;
-            font-size: 9pt;
-            letter-spacing: 0.3pt;
-            padding: 2mm 2mm;
-            border: 0.5pt solid #1F3864;
+            font-size: 8.5pt;
+            letter-spacing: 0.4pt;
+            padding: 2.4mm 2.5mm;
+            vertical-align: middle;
+            border: none;
         }
-        .lines td { padding: 1.8mm 2mm; border: 0.5pt solid #BFBFBF; vertical-align: top; }
+        .lines td {
+            padding: 2.2mm 2.5mm;
+            border-bottom: 0.5pt solid #D9D9D9;
+            vertical-align: middle;
+        }
         .lines tr { page-break-inside: avoid; }
-        .lines .num { text-align: right; white-space: nowrap; }
-        .lines .unit { text-align: center; }
+        .head-inner td.desc { white-space: normal; }
+        .head-inner td.center { text-align: center; }
+        .head-inner td.num { text-align: right; }
         .lines .desc { text-align: left; white-space: pre-line; word-wrap: break-word; }
-        .lines th.desc { white-space: normal; }
-        .lines tr.total td { font-weight: bold; }
-        .lines tr.total td.empty { border: none; }
-        .lines tr.total td.total-label { background-color: #F2F2F2; text-align: right; white-space: nowrap; }
-        .lines tr.total td.total-value { background-color: #F2F2F2; }
-        .col-desc { width: 46%; }
+        .lines .center { text-align: center; white-space: nowrap; }
+        .lines .num { text-align: right; white-space: nowrap; }
+        .lines tr.total td { font-weight: bold; border-bottom: none; padding-top: 2.6mm; padding-bottom: 2.6mm; }
+        .lines tr.total td.total-band { background-color: #F2F2F2; border-top: 1pt solid #1F3864; padding: 0; }
+        .lines .total-inner { width: 100%; table-layout: fixed; }
+        .lines .total-inner td { border: none; padding: 2.6mm 2.5mm; font-weight: bold; text-align: right; white-space: nowrap; }
+        .col-desc { width: 44%; }
         .col-qty { width: 11%; }
         .col-unit { width: 11%; }
-        .col-price { width: 16%; }
-        .col-amount { width: 16%; }
+        .col-price { width: 17%; }
+        .col-amount { width: 17%; }
 
         .footer-content { margin-top: 10mm; page-break-inside: avoid; }
         .footer-title { font-style: italic; margin-bottom: 1.5mm; }
         .notes { white-space: pre-line; margin-bottom: 1.5mm; }
-        .vat-mention { margin-top: 1mm; }
+        .mention { margin-top: 1mm; }
     </style>
 </head>
 <body>
@@ -95,19 +121,17 @@
 <table class="header">
     <tr>
         <td colspan="2">
-            <div class="issuer-name" th:text="${issuer.name}">Nom de l'entreprise</div>
-            <div th:each="line : ${issuer.addressLines()}" th:text="${line}">Adresse</div>
-            <div class="issuer-extra" th:if="${issuer.siret != null}" th:text="|SIRET : ${issuer.siret}|">SIRET</div>
-            <div class="issuer-extra" th:if="${issuer.email != null or issuer.phone != null}">
-                <span th:if="${issuer.email != null}" th:text="${issuer.email}">email</span>
-                <span th:if="${issuer.email != null and issuer.phone != null}"> - </span>
-                <span th:if="${issuer.phone != null}" th:text="${issuer.phone}">téléphone</span>
-            </div>
+            <div class="issuer-name" th:if="${issuer.name != null}" th:text="${issuer.name}">Nom de l'entreprise</div>
+            <div th:each="line : ${issuer.addressLines}" th:text="${line}">Adresse</div>
+            <div class="issuer-extra first" th:if="${issuer.siret != null}" th:text="|SIRET : ${issuer.siret}|">SIRET</div>
+            <div class="issuer-extra" th:classappend="${issuer.siret == null} ? 'first'" th:if="${issuer.contact() != null}"
+                 th:text="${issuer.contact()}">contact</div>
         </td>
     </tr>
-    <tr>
-        <td class="client">
-            <div class="client-label" th:text="${invoice.clientName}">Nom du client</div>
+    <tr class="parties">
+        <td class="client-cell">
+            <div class="label-small">Facturé à</div>
+            <div class="client-name" th:text="${invoice.clientName}">Nom du client</div>
             <div th:each="line : ${invoice.clientAddressLines}" th:text="${line}">Adresse du client</div>
         </td>
         <td class="invoice-box-cell">
@@ -129,9 +153,15 @@
                     <td class="label">Date d'échéance</td>
                     <td class="value" th:text="${fmt.date(invoice.dueDate)}">10/12/2026</td>
                 </tr>
-                <tr class="due">
-                    <td class="label">Total à payer</td>
-                    <td class="value" th:text="${fmt.money(invoice.totalDue)}">0,00 €</td>
+                <tr>
+                    <td class="due" colspan="2">
+                        <table class="due-inner">
+                            <tr>
+                                <td>Total à payer</td>
+                                <td class="value" th:text="${fmt.money(invoice.totalDue)}">0,00 €</td>
+                            </tr>
+                        </table>
+                    </td>
                 </tr>
             </table>
         </td>
@@ -139,29 +169,47 @@
 </table>
 
 <table class="lines">
+    <colgroup>
+        <col class="col-desc"/><col class="col-qty"/><col class="col-unit"/><col class="col-price"/><col class="col-amount"/>
+    </colgroup>
     <thead>
     <tr>
-        <th class="desc col-desc">Description</th>
-        <th class="num col-qty">Quantité</th>
-        <th class="unit col-unit">Unité</th>
-        <th class="num col-price">Prix</th>
-        <th class="num col-amount">Montant</th>
+        <th class="head-band" colspan="5">
+            <table class="head-inner">
+                <colgroup>
+                    <col class="col-desc"/><col class="col-qty"/><col class="col-unit"/><col class="col-price"/><col class="col-amount"/>
+                </colgroup>
+                <tr>
+                    <td class="desc">Description</td>
+                    <td class="center">Quantité</td>
+                    <td class="center">Unité</td>
+                    <td class="num">Prix unitaire HT</td>
+                    <td class="num">Montant HT</td>
+                </tr>
+            </table>
+        </th>
     </tr>
     </thead>
     <tbody>
     <tr th:each="line : ${invoice.lines}">
         <td class="desc" th:text="${line.description}">Prestation</td>
-        <td class="num" th:text="${fmt.quantity(line.quantity)}">1</td>
-        <td class="unit" th:text="${line.unit}"></td>
+        <td class="center" th:text="${fmt.quantity(line.quantity)}">1</td>
+        <td class="center" th:text="${line.unit}"></td>
         <td class="num" th:text="${fmt.money(line.unitPrice)}">0,00 €</td>
         <td class="num" th:text="${fmt.money(line.amount)}">0,00 €</td>
     </tr>
     <tr class="total">
-        <td class="empty"></td>
-        <td class="empty"></td>
-        <td class="empty"></td>
-        <td class="total-label">TOTAL HT</td>
-        <td class="num total-value" th:text="${fmt.money(invoice.totalExclTax)}">0,00 €</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="total-band" colspan="2">
+            <table class="total-inner">
+                <tr>
+                    <td>TOTAL HT</td>
+                    <td th:text="${fmt.money(invoice.totalExclTax)}">0,00 €</td>
+                </tr>
+            </table>
+        </td>
     </tr>
     </tbody>
 </table>
@@ -169,8 +217,8 @@
 <div class="footer-content">
     <div class="footer-title">Conditions de paiement et mentions particulières :</div>
     <div class="notes" th:if="${invoice.notes != null}" th:text="${invoice.notes}">Notes</div>
-    <div class="vat-mention">TVA non applicable, article 293B du code général des impôts</div>
-    <div class="vat-mention" th:if="${issuer.iban != null}" th:text="|IBAN : ${issuer.iban}|">IBAN</div>
+    <div class="mention">TVA non applicable, article 293B du code général des impôts</div>
+    <div class="mention" th:if="${issuer.iban != null}" th:text="|IBAN : ${issuer.iban}|">IBAN</div>
 </div>
 
 </body>

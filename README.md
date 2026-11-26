@@ -4,7 +4,7 @@ Application web de génération de factures PDF. L'utilisateur saisit la facture
 
 - Montants calculés par le serveur en décimal exact (BigDecimal, arrondi HALF_UP à 2 décimales).
 - Mention "TVA non applicable, article 293B du code général des impôts".
-- EUR, français, un seul émetteur configuré par fichier `.env`.
+- EUR, français. L'émetteur (vos coordonnées) se saisit dans le formulaire et reste mémorisé dans le navigateur ; le fichier `.env` peut fournir des valeurs par défaut.
 - Aucune donnée conservée : l'application est sans état et sans base de données.
 
 ## Pile
@@ -69,13 +69,23 @@ Puis ouvrir http://localhost:8081.
   "lines": [
     { "description": "Développement", "quantity": 5, "unit": "jour", "unitPrice": 250.00 }
   ],
-  "notes": null
+  "notes": null,
+  "issuer": {
+    "name": "Atelier Dupont",
+    "addressLines": ["8 avenue des Lilas", "33000 Bordeaux"],
+    "siret": "362 521 879 00034",
+    "email": null,
+    "phone": null,
+    "iban": null
+  }
 }
 ```
 
+Le bloc `issuer` est facultatif : s'il est absent, l'émetteur de la configuration (`.env`) est utilisé.
+
 Les montants de ligne, le total HT, le total à payer et la date d'échéance sont toujours calculés par le serveur. Tout champ inconnu est refusé. Les erreurs suivent le format `application/problem+json` (RFC 9457) avec la liste `errors` des champs invalides.
 
-`GET /api/v1/issuer` renvoie l'identité de l'émetteur pour l'aperçu.
+`GET /api/v1/issuer` renvoie l'émetteur configuré, utilisé pour préremplir le formulaire au premier usage.
 
 ### Règles de validation
 

@@ -140,6 +140,43 @@ class InvoiceApiTest {
         }
     }
 
+    static final String ISSUER = """
+            "issuer": {
+              "name": "Atelier Saisi Éàç",
+              "addressLines": ["8 avenue des Saisies", "33000 Bordeaux"],
+              "siret": "362 521 879 00034",
+              "email": "contact@atelier.example",
+              "phone": "+33 6 12 34 56 78",
+              "iban": "FR76 3000 6000 0112 3456 7890 189"
+            },
+            "notes":""";
+
+    @Test
+    void lEmetteurSaisiRemplaceCeluiDeLaConfiguration() throws Exception {
+        byte[] pdf = generate(VALID.replace("\"notes\":", ISSUER));
+        writeSample("Facture-emetteur-saisi.pdf", pdf);
+        try (PDDocument document = Loader.loadPDF(pdf)) {
+            String text = text(document);
+            assertThat(text).contains("Atelier Saisi Éàç", "8 avenue des Saisies", "33000 Bordeaux",
+                    "SIRET : 362 521 879 00034", "contact@atelier.example - +33 6 12 34 56 78",
+                    "IBAN : FR76 3000 6000 0112 3456 7890 189");
+            assertThat(text).doesNotContain("Atelier Exemple");
+        }
+    }
+
+    @Test
+    void refuseUnEmetteurInvalide() throws Exception {
+        String body = VALID.replace("\"notes\":", ISSUER)
+                .replace("contact@atelier.example", "pas-un-email")
+                .replace("FR76 3000 6000 0112 3456 7890 189", "1234")
+                .replace("\"name\": \"Atelier Saisi Éàç\"", "\"name\": \"\"");
+        mvc.perform(post("/api/v1/invoices/pdf").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[?(@.field == 'issuer.email')]").exists())
+                .andExpect(jsonPath("$.errors[?(@.field == 'issuer.iban')]").exists())
+                .andExpect(jsonPath("$.errors[?(@.field == 'issuer.name')]").exists());
+    }
+
     @Test
     void echantillonDeReference() throws Exception {
         writeSample("Facture-558-00178.pdf", generate(VALID));

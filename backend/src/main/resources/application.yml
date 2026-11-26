@@ -21,11 +21,11 @@ server:
 
 invoice:
   issuer:
-    name: "${INVOICE_ISSUER_NAME:Nom de l'entreprise}"
-    address-line1: "${INVOICE_ISSUER_ADDRESS_LINE1:Adresse}"
+    name: "${INVOICE_ISSUER_NAME:}"
+    address-line1: "${INVOICE_ISSUER_ADDRESS_LINE1:}"
     address-line2: "${INVOICE_ISSUER_ADDRESS_LINE2:}"
-    postal-code: "${INVOICE_ISSUER_POSTAL_CODE:00000}"
-    city: "${INVOICE_ISSUER_CITY:Ville}"
+    postal-code: "${INVOICE_ISSUER_POSTAL_CODE:}"
+    city: "${INVOICE_ISSUER_CITY:}"
     siret: "${INVOICE_ISSUER_SIRET:}"
     email: "${INVOICE_ISSUER_EMAIL:}"
     phone: "${INVOICE_ISSUER_PHONE:}"

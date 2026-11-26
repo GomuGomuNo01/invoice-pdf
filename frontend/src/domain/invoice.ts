@@ -19,6 +19,11 @@ export const LIMITS = {
   maxDescription: 500,
   maxUnit: 20,
   maxNotes: 1000,
+  maxEmail: 120,
+  siretRegex: /^$|^(?:\d ?){9}(?:(?:\d ?){5})?$/,
+  phoneRegex: /^[0-9+().\- ]{0,30}$/,
+  ibanRegex: /^$|^[A-Za-z]{2}[0-9]{2}[A-Za-z0-9 ]{10,38}$/,
+  emailRegex: /^$|^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   maxQuantity: 1_000_000n * 10n ** BigInt(QUANTITY_SCALE),
   maxUnitPriceCents: 100_000_000n * 10n ** BigInt(PRICE_SCALE),
 } as const;
@@ -38,7 +43,28 @@ export interface LineDraft {
   unitPrice: string;
 }
 
-export interface InvoiceDraft {
+/** Émetteur : mémorisé dans le navigateur pour les factures suivantes. */
+export interface IssuerDraft {
+  issuerName: string;
+  issuerAddress: string;
+  issuerSiret: string;
+  issuerEmail: string;
+  issuerPhone: string;
+  issuerIban: string;
+}
+
+export const EMPTY_ISSUER: IssuerDraft = {
+  issuerName: '',
+  issuerAddress: '',
+  issuerSiret: '',
+  issuerEmail: '',
+  issuerPhone: '',
+  issuerIban: '',
+};
+
+export const ISSUER_KEYS = Object.keys(EMPTY_ISSUER) as (keyof IssuerDraft)[];
+
+export interface InvoiceDraft extends IssuerDraft {
   invoiceNumber: string;
   invoiceDate: string;
   paymentTermsDays: string;
@@ -56,6 +82,14 @@ export interface InvoicePayload {
   client: { name: string; addressLines: string[] };
   lines: { description: string; quantity: number; unit: string | null; unitPrice: number }[];
   notes: string | null;
+  issuer: {
+    name: string;
+    addressLines: string[];
+    siret: string | null;
+    email: string | null;
+    phone: string | null;
+    iban: string | null;
+  };
 }
 
 export function addressLines(clientAddress: string): string[] {
@@ -93,7 +127,39 @@ const lineSchema = z.object({
   }),
 });
 
+function addressSchema(label: string) {
+  return z.string().superRefine((value, ctx) => {
+    const lines = addressLines(value);
+    if (lines.length > LIMITS.maxAddressLines) {
+      ctx.addIssue({ code: 'custom', message: `${label} contient au plus 5 lignes.` });
+    } else if (lines.some((line) => line.length > LIMITS.maxAddressLine)) {
+      ctx.addIssue({ code: 'custom', message: "Une ligne d'adresse dépasse 120 caractères." });
+    }
+  });
+}
+
 export const invoiceDraftSchema = z.object({
+  issuerName: z
+    .string()
+    .trim()
+    .min(1, 'Votre nom ou celui de votre entreprise est obligatoire.')
+    .max(LIMITS.maxName, 'Le nom dépasse 120 caractères.')
+    .regex(SINGLE_LINE, CONTROL_MESSAGE),
+  issuerAddress: addressSchema('Votre adresse'),
+  issuerSiret: z.string().trim().regex(LIMITS.siretRegex, 'Le SIRET compte 14 chiffres (ou 9 pour un SIREN).'),
+  issuerEmail: z
+    .string()
+    .trim()
+    .max(LIMITS.maxEmail, "L'adresse e-mail dépasse 120 caractères.")
+    .regex(LIMITS.emailRegex, "L'adresse e-mail n'est pas valide (ex. nom@domaine.fr)."),
+  issuerPhone: z
+    .string()
+    .trim()
+    .regex(LIMITS.phoneRegex, 'Le téléphone accepte des chiffres, des espaces et + . - ( ).'),
+  issuerIban: z
+    .string()
+    .trim()
+    .regex(LIMITS.ibanRegex, "L'IBAN commence par 2 lettres et 2 chiffres (ex. FR76 ...)."),
   invoiceNumber: z
     .string()
     .trim()
@@ -117,14 +183,7 @@ export const invoiceDraftSchema = z.object({
     .min(1, 'Le nom du client est obligatoire.')
     .max(LIMITS.maxName, 'Le nom du client dépasse 120 caractères.')
     .regex(SINGLE_LINE, CONTROL_MESSAGE),
-  clientAddress: z.string().superRefine((value, ctx) => {
-    const lines = addressLines(value);
-    if (lines.length > LIMITS.maxAddressLines) {
-      ctx.addIssue({ code: 'custom', message: "L'adresse du client contient au plus 5 lignes." });
-    } else if (lines.some((line) => line.length > LIMITS.maxAddressLine)) {
-      ctx.addIssue({ code: 'custom', message: "Une ligne d'adresse dépasse 120 caractères." });
-    }
-  }),
+  clientAddress: addressSchema("L'adresse du client"),
   lines: z
     .array(lineSchema)
     .min(1, 'Au moins une ligne est obligatoire.')
@@ -164,12 +223,36 @@ export function toPayload(draft: InvoiceDraft): InvoicePayload {
       unitPrice: Number(scaledToDecimalString(parseScaled(line.unitPrice, PRICE_SCALE) ?? 0n, PRICE_SCALE)),
     })),
     notes: notes === '' ? null : notes,
+    issuer: {
+      name: draft.issuerName.trim(),
+      addressLines: addressLines(draft.issuerAddress),
+      siret: orNull(draft.issuerSiret),
+      email: orNull(draft.issuerEmail),
+      phone: orNull(draft.issuerPhone),
+      iban: orNull(draft.issuerIban),
+    },
   };
 }
+
+function orNull(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed === '' ? null : trimmed;
+}
+
+const SERVER_ISSUER_FIELDS: Record<string, keyof IssuerDraft> = {
+  'issuer.name': 'issuerName',
+  'issuer.siret': 'issuerSiret',
+  'issuer.email': 'issuerEmail',
+  'issuer.phone': 'issuerPhone',
+  'issuer.iban': 'issuerIban',
+};
 
 /** Convertit un chemin d'erreur serveur ("lines[0].quantity", "client.name") en clé du formulaire. */
 export function serverFieldToFormKey(field: string): string {
   if (field === 'client.name') return 'clientName';
+  if (field.startsWith('issuer.addressLines')) return 'issuerAddress';
+  const issuerKey = SERVER_ISSUER_FIELDS[field];
+  if (issuerKey) return issuerKey;
   if (field.startsWith('client.addressLines')) return 'clientAddress';
   return field.replace(/\[(\d+)\]/g, '.$1');
 }
@@ -211,8 +294,9 @@ export function newLine(): LineDraft {
   return { id: `l${Date.now().toString(36)}${lineCounter}`, description: '', quantity: '1', unit: '', unitPrice: '' };
 }
 
-export function emptyDraft(today: string): InvoiceDraft {
+export function emptyDraft(today: string, issuer: IssuerDraft = EMPTY_ISSUER): InvoiceDraft {
   return {
+    ...issuer,
     invoiceNumber: '',
     invoiceDate: today,
     paymentTermsDays: '14',
@@ -221,4 +305,8 @@ export function emptyDraft(today: string): InvoiceDraft {
     lines: [newLine()],
     notes: '',
   };
+}
+
+export function pickIssuer(draft: InvoiceDraft): IssuerDraft {
+  return Object.fromEntries(ISSUER_KEYS.map((key) => [key, draft[key]])) as unknown as IssuerDraft;
 }

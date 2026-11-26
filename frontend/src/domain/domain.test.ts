@@ -12,6 +12,12 @@ import {
 
 function draft(overrides: Partial<InvoiceDraft> = {}): InvoiceDraft {
   return {
+    issuerName: 'Atelier Dupont',
+    issuerAddress: '8 avenue des Lilas\n33000 Bordeaux',
+    issuerSiret: '',
+    issuerEmail: '',
+    issuerPhone: '',
+    issuerIban: '',
     invoiceNumber: '558-00178',
     invoiceDate: '2026-11-26',
     paymentTermsDays: '14',
@@ -186,7 +192,34 @@ describe("contenu envoyé à l'API", () => {
         { description: 'Frais', quantity: 1, unit: null, unitPrice: 0.5 },
       ],
       notes: null,
+      issuer: {
+        name: 'Atelier Dupont',
+        addressLines: ['8 avenue des Lilas', '33000 Bordeaux'],
+        siret: null,
+        email: null,
+        phone: null,
+        iban: null,
+      },
     });
+  });
+
+  it("valide les coordonnées de l'émetteur", () => {
+    expect(validateDraft(draft({ issuerName: ' ' }))['issuerName']).toBeDefined();
+    expect(validateDraft(draft({ issuerSiret: '12345' }))['issuerSiret']).toBeDefined();
+    expect(validateDraft(draft({ issuerEmail: 'pas-un-email' }))['issuerEmail']).toBeDefined();
+    expect(validateDraft(draft({ issuerIban: '1234' }))['issuerIban']).toBeDefined();
+    expect(validateDraft(draft({ issuerPhone: 'abc' }))['issuerPhone']).toBeDefined();
+    expect(
+      validateDraft(
+        draft({
+          issuerSiret: '362 521 879 00034',
+          issuerEmail: 'contact@atelier.fr',
+          issuerPhone: '+33 6 12 34 56 78',
+          issuerIban: 'FR76 3000 6000 0112 3456 7890 189',
+        }),
+      ),
+    ).toEqual({});
+    expect(validateDraft(draft({ issuerSiret: '362521879' }))).toEqual({});
   });
 
   it('traduit les chemins d’erreur du serveur', () => {
@@ -194,5 +227,7 @@ describe("contenu envoyé à l'API", () => {
     expect(serverFieldToFormKey('client.name')).toBe('clientName');
     expect(serverFieldToFormKey('client.addressLines[2]')).toBe('clientAddress');
     expect(serverFieldToFormKey('invoiceNumber')).toBe('invoiceNumber');
+    expect(serverFieldToFormKey('issuer.email')).toBe('issuerEmail');
+    expect(serverFieldToFormKey('issuer.addressLines[1]')).toBe('issuerAddress');
   });
 });

@@ -1,21 +1,25 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { ApiError, downloadBlob, fetchIssuer, generatePdf, type Issuer } from './api/client';
+import { ApiError, downloadBlob, fetchIssuer, generatePdf } from './api/client';
 import { InputField, TextAreaField } from './components/Field';
 import { Icon } from './components/Icon';
 import { InvoicePreview } from './components/InvoicePreview';
 import { LinesEditor } from './components/LinesEditor';
 import {
+  EMPTY_ISSUER,
   LIMITS,
   computeTotals,
   emptyDraft,
   newLine,
+  pickIssuer,
   serverFieldToFormKey,
   toPayload,
   validateDraft,
   type FieldErrors,
   type InvoiceDraft,
+  type IssuerDraft,
   type LineDraft,
 } from './domain/invoice';
+import { loadIssuer, saveIssuer } from './domain/issuerStorage';
 import { formatDate, formatMoney, pdfFileName, todayIso } from './domain/format';
 
 type Status =
@@ -35,7 +39,14 @@ function fieldId(key: string): string {
 }
 
 /** Ordre visuel des champs, pour lister les erreurs dans l'ordre de lecture. */
-const FIELD_ORDER = ['clientName', 'clientAddress', 'invoiceNumber', 'invoiceDate', 'paymentTermsDays', 'lines'];
+const FIELD_ORDER = [
+  'issuerName',
+  'issuerAddress',
+  'issuerSiret',
+  'issuerIban',
+  'issuerEmail',
+  'issuerPhone',
+  'clientName', 'clientAddress', 'invoiceNumber', 'invoiceDate', 'paymentTermsDays', 'lines'];
 const LINE_FIELD_ORDER = ['description', 'quantity', 'unit', 'unitPrice'];
 function fieldRank(key: string): number {
   const line = /^lines\.(\d+)\.(\w+)$/.exec(key);
@@ -63,8 +74,8 @@ function isBlank(draft: InvoiceDraft): boolean {
 }
 
 export default function App() {
-  const [draft, setDraft] = useState<InvoiceDraft>(() => emptyDraft(todayIso()));
-  const [issuer, setIssuer] = useState<Issuer | null>(null);
+  const [storedIssuer] = useState<IssuerDraft | null>(loadIssuer);
+  const [draft, setDraft] = useState<InvoiceDraft>(() => emptyDraft(todayIso(), storedIssuer ?? EMPTY_ISSUER));
   const [submitted, setSubmitted] = useState(false);
   const [touched, setTouched] = useState<ReadonlySet<string>>(() => new Set());
   const [serverErrors, setServerErrors] = useState<FieldErrors>({});
@@ -74,13 +85,41 @@ export default function App() {
   const summaryRef = useRef<HTMLDivElement>(null);
   const previewTitleRef = useRef<HTMLHeadingElement>(null);
 
+  // Premier usage : préremplir l'émetteur avec la configuration du serveur, si elle existe.
   useEffect(() => {
+    if (storedIssuer) return;
     const controller = new AbortController();
     fetchIssuer(controller.signal)
-      .then(setIssuer)
-      .catch(() => setIssuer(null));
+      .then((issuer) => {
+        if (!issuer.name) return;
+        setDraft((current) =>
+          current.issuerName.trim()
+            ? current
+            : {
+                ...current,
+                issuerName: issuer.name ?? '',
+                issuerAddress: issuer.addressLines.join('\n'),
+                issuerSiret: issuer.siret ?? '',
+                issuerEmail: issuer.email ?? '',
+                issuerPhone: issuer.phone ?? '',
+                issuerIban: issuer.iban ?? '',
+              },
+        );
+      })
+      .catch(() => undefined);
     return () => controller.abort();
-  }, []);
+  }, [storedIssuer]);
+
+  // L'émetteur est mémorisé dans ce navigateur à chaque modification.
+  const issuerSnapshot = JSON.stringify(pickIssuer(draft));
+  const firstSave = useRef(true);
+  useEffect(() => {
+    if (firstSave.current) {
+      firstSave.current = false;
+      return;
+    }
+    saveIssuer(JSON.parse(issuerSnapshot) as IssuerDraft);
+  }, [issuerSnapshot]);
 
   const totals = useMemo(() => computeTotals(draft), [draft]);
   const allClientErrors = useMemo(() => validateDraft(draft), [draft]);
@@ -185,7 +224,7 @@ export default function App() {
 
   function reset() {
     if (!isBlank(draft) && !window.confirm('Effacer la facture en cours et recommencer ?')) return;
-    setDraft(emptyDraft(todayIso()));
+    setDraft((current) => emptyDraft(todayIso(), pickIssuer(current)));
     setSubmitted(false);
     setTouched(new Set());
     edited.current = new Set();
@@ -225,8 +264,8 @@ export default function App() {
           <div className="intro">
             <h1>Nouvelle facture</h1>
             <p>
-              Remplissez les quatre étapes. L'aperçu se met à jour pendant la saisie. Rien n'est enregistré sur nos
-              serveurs.
+              Remplissez les cinq étapes. L'aperçu se met à jour pendant la saisie. Rien n'est enregistré sur nos
+              serveurs : vos coordonnées sont seulement mémorisées dans ce navigateur.
             </p>
           </div>
 
@@ -258,6 +297,98 @@ export default function App() {
               <legend className="step__title">
                 <span className="step__num" aria-hidden="true">
                   1
+                </span>
+                Vous
+              </legend>
+              <p className="step__help">
+                Vos coordonnées, en haut de la facture. Elles sont gardées pour vos prochaines factures.
+              </p>
+              <div className="grid grid--client">
+                <InputField
+                  id="issuerName"
+                  label="Votre nom ou votre entreprise"
+                  autoComplete="organization"
+                  placeholder="Ex. Atelier Dupont"
+                  maxLength={LIMITS.maxName}
+                  value={draft.issuerName}
+                  error={errors['issuerName']}
+                  onChange={(event) => update('issuerName', event.target.value)}
+                  onBlur={() => handleBlur('issuerName')}
+                />
+                <TextAreaField
+                  id="issuerAddress"
+                  label="Votre adresse"
+                  optional
+                  hint="Allez à la ligne comme sur une enveloppe."
+                  rows={3}
+                  autoComplete="street-address"
+                  placeholder={'8 avenue des Lilas\n33000 Bordeaux'}
+                  value={draft.issuerAddress}
+                  error={errors['issuerAddress']}
+                  onChange={(event) => update('issuerAddress', event.target.value)}
+                  onBlur={() => handleBlur('issuerAddress')}
+                />
+              </div>
+              <div className="grid grid--2">
+                <InputField
+                  id="issuerSiret"
+                  label="SIRET"
+                  optional
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="Ex. 362 521 879 00034"
+                  maxLength={20}
+                  value={draft.issuerSiret}
+                  error={errors['issuerSiret']}
+                  onChange={(event) => update('issuerSiret', event.target.value)}
+                  onBlur={() => handleBlur('issuerSiret')}
+                />
+                <InputField
+                  id="issuerIban"
+                  label="IBAN"
+                  optional
+                  hint="Affiché en bas de la facture pour le virement."
+                  autoComplete="off"
+                  placeholder="Ex. FR76 3000 6000 0112 3456 7890 189"
+                  maxLength={42}
+                  value={draft.issuerIban}
+                  error={errors['issuerIban']}
+                  onChange={(event) => update('issuerIban', event.target.value)}
+                  onBlur={() => handleBlur('issuerIban')}
+                />
+                <InputField
+                  id="issuerEmail"
+                  label="E-mail"
+                  optional
+                  type="email"
+                  autoComplete="email"
+                  placeholder="Ex. contact@atelier.fr"
+                  maxLength={LIMITS.maxEmail}
+                  value={draft.issuerEmail}
+                  error={errors['issuerEmail']}
+                  onChange={(event) => update('issuerEmail', event.target.value)}
+                  onBlur={() => handleBlur('issuerEmail')}
+                />
+                <InputField
+                  id="issuerPhone"
+                  label="Téléphone"
+                  optional
+                  type="tel"
+                  autoComplete="tel"
+                  placeholder="Ex. 06 12 34 56 78"
+                  maxLength={30}
+                  value={draft.issuerPhone}
+                  error={errors['issuerPhone']}
+                  onChange={(event) => update('issuerPhone', event.target.value)}
+                  onBlur={() => handleBlur('issuerPhone')}
+                />
+              </div>
+            </fieldset>
+
+            <fieldset className="step">
+              <legend className="step__title">
+                <span className="step__num" aria-hidden="true">
+                  2
                 </span>
                 Client
               </legend>
@@ -293,7 +424,7 @@ export default function App() {
             <fieldset className="step">
               <legend className="step__title">
                 <span className="step__num" aria-hidden="true">
-                  2
+                  3
                 </span>
                 Facture
               </legend>
@@ -339,7 +470,7 @@ export default function App() {
             <fieldset className="step">
               <legend className="step__title">
                 <span className="step__num" aria-hidden="true">
-                  3
+                  4
                 </span>
                 Prestations
               </legend>
@@ -364,7 +495,7 @@ export default function App() {
             <fieldset className="step">
               <legend className="step__title">
                 <span className="step__num" aria-hidden="true">
-                  4
+                  5
                 </span>
                 Mentions
               </legend>
@@ -441,7 +572,7 @@ export default function App() {
             <p>Le PDF téléchargé fait foi.</p>
           </div>
           <div className="preview__paper">
-            <InvoicePreview draft={draft} totals={totals} issuer={issuer} />
+            <InvoicePreview draft={draft} totals={totals} />
           </div>
         </section>
       </main>

@@ -12,8 +12,8 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.ITemplateEngine;
 import org.thymeleaf.context.Context;
 
-import com.invoicepdf.config.IssuerProperties;
 import com.invoicepdf.domain.ComputedInvoice;
+import com.invoicepdf.domain.IssuerInfo;
 import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder.FontStyle;
 import com.openhtmltopdf.outputdevice.helper.ExternalResourceControlPriority;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
@@ -29,16 +29,14 @@ public class InvoicePdfRenderer {
     private static final String TEMPLATE = "invoice";
 
     private final ITemplateEngine templateEngine;
-    private final IssuerProperties issuer;
     private final FrenchFormats formats = new FrenchFormats();
 
-    public InvoicePdfRenderer(ITemplateEngine templateEngine, IssuerProperties issuer) {
+    public InvoicePdfRenderer(ITemplateEngine templateEngine) {
         this.templateEngine = templateEngine;
-        this.issuer = issuer;
     }
 
     /** HTML intermédiaire (utile aux tests et au débogage du gabarit). */
-    public String renderHtml(ComputedInvoice invoice) {
+    public String renderHtml(ComputedInvoice invoice, IssuerInfo issuer) {
         Context context = new Context(Locale.FRANCE);
         context.setVariable("invoice", invoice);
         context.setVariable("issuer", issuer);
@@ -46,8 +44,8 @@ public class InvoicePdfRenderer {
         return templateEngine.process(TEMPLATE, context);
     }
 
-    public byte[] renderPdf(ComputedInvoice invoice) {
-        String html = renderHtml(invoice);
+    public byte[] renderPdf(ComputedInvoice invoice, IssuerInfo issuer) {
+        String html = renderHtml(invoice, issuer);
         org.w3c.dom.Document document = new W3CDom().fromJsoup(Jsoup.parse(html));
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream(64 * 1024)) {

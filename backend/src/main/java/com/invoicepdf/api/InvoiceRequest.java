@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -42,7 +43,39 @@ public record InvoiceRequest(
 
         @Size(max = Limits.MAX_NOTES, message = "Les mentions particulières dépassent 1000 caractères.")
         @Pattern(regexp = Limits.MULTILINE_TEXT_REGEX, message = Limits.CONTROL_CHAR_MESSAGE)
-        String notes) {
+        String notes,
+
+        /** Facultatif : à défaut, l'émetteur de la configuration est utilisé. */
+        @Valid
+        Issuer issuer) {
+
+    public record Issuer(
+            @NotBlank(message = "Votre nom ou celui de votre entreprise est obligatoire.")
+            @Size(max = Limits.MAX_NAME, message = "Le nom dépasse 120 caractères.")
+            @Pattern(regexp = Limits.SINGLE_LINE_TEXT_REGEX, message = Limits.CONTROL_CHAR_MESSAGE)
+            String name,
+
+            @Size(max = Limits.MAX_ADDRESS_LINES, message = "L'adresse contient au plus 5 lignes.")
+            List<
+                    @NotNull
+                    @Size(max = Limits.MAX_ADDRESS_LINE, message = "Une ligne d'adresse dépasse 120 caractères.")
+                    @Pattern(regexp = Limits.SINGLE_LINE_TEXT_REGEX, message = Limits.CONTROL_CHAR_MESSAGE)
+                    String> addressLines,
+
+            @Pattern(regexp = Limits.SIRET_REGEX, message = Limits.SIRET_MESSAGE)
+            String siret,
+
+            @Size(max = Limits.MAX_EMAIL, message = "L'adresse e-mail dépasse 120 caractères.")
+            @Email(message = "L'adresse e-mail n'est pas valide.")
+            @Pattern(regexp = Limits.SINGLE_LINE_TEXT_REGEX, message = Limits.CONTROL_CHAR_MESSAGE)
+            String email,
+
+            @Pattern(regexp = Limits.PHONE_REGEX, message = Limits.PHONE_MESSAGE)
+            String phone,
+
+            @Pattern(regexp = Limits.IBAN_REGEX, message = Limits.IBAN_MESSAGE)
+            String iban) {
+    }
 
     public record Client(
             @NotBlank(message = "Le nom du client est obligatoire.")

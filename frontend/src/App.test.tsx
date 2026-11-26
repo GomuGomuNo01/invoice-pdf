@@ -20,7 +20,8 @@ function jsonResponse(body: unknown, status = 200, contentType = 'application/js
 let fetchMock: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
-  fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+  window.localStorage.clear();
+  fetchMock =vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.endsWith('/api/v1/issuer')) return jsonResponse(issuer);
     return new Response(new Blob(['%PDF-1.7'], { type: 'application/pdf' }), {
@@ -40,6 +41,8 @@ afterEach(() => {
 });
 
 async function fillValidInvoice(user: ReturnType<typeof userEvent.setup>) {
+  // L'émetteur est prérempli depuis la configuration du serveur (premier usage).
+  await screen.findByDisplayValue('Atelier Exemple');
   await user.type(screen.getByLabelText(/Numéro de facture/), '558-00178');
   const date = screen.getByLabelText(/Date de la facture/);
   await user.clear(date);
@@ -92,8 +95,42 @@ describe('parcours de saisie', () => {
       client: { name: 'Société Cliente', addressLines: ['5 avenue du Client', '69001 Lyon'] },
       lines: [{ description: 'Développement', quantity: 1.5, unit: null, unitPrice: 10.01 }],
       notes: null,
+      issuer: {
+        name: 'Atelier Exemple',
+        addressLines: ['12 rue des Tests', '75011 Paris'],
+        siret: null,
+        email: null,
+        phone: null,
+        iban: null,
+      },
     });
     expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
+  });
+
+  it("mémorise l'émetteur saisi pour la facture suivante", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<App />);
+    const name = await screen.findByDisplayValue('Atelier Exemple');
+    await user.clear(name);
+    await user.type(name, 'Mon Atelier');
+    await user.type(screen.getByLabelText(/SIRET/), '362 521 879 00034');
+    unmount();
+
+    render(<App />);
+    expect(screen.getByLabelText(/Votre nom ou votre entreprise/)).toHaveValue('Mon Atelier');
+    expect(screen.getByLabelText(/SIRET/)).toHaveValue('362 521 879 00034');
+    // L'émetteur mémorisé n'est pas écrasé par la configuration du serveur.
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/api/v1/issuer'))).toHaveLength(1);
+  });
+
+  it("signale un SIRET mal saisi sur le champ de l'émetteur", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await fillValidInvoice(user);
+    await user.type(screen.getByLabelText(/SIRET/), '12');
+    await user.click(screen.getByRole('button', { name: 'Télécharger le PDF' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Le SIRET compte 14 chiffres');
+    expect(screen.getByLabelText(/SIRET/)).toHaveAttribute('aria-invalid', 'true');
   });
 
   it("bloque l'envoi et liste les erreurs si le formulaire est invalide", async () => {

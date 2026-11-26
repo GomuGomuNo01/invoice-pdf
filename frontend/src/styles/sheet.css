@@ -1,7 +1,8 @@
 /*
  * Feuille A4 : reproduit le gabarit PDF (210 x 297 mm, marges 18/16/20/16 mm).
  * Ne pas modifier sans modifier aussi backend/src/main/resources/templates/invoice.html.
- * Les tailles sont en cqw : elles suivent la largeur du conteneur .preview__paper.
+ * Les tailles sont en cqw (1 mm = 0,476 cqw) : elles suivent la largeur du conteneur .preview__paper.
+ * Alignements : libellés à gauche, montants à droite, quantité et unité centrées, cellules centrées verticalement.
  */
 .preview__paper {
   container-type: inline-size;
@@ -16,8 +17,6 @@
   box-shadow: var(--sheet-shadow);
   border-radius: 2px;
   position: relative;
-}
-.sheet {
   padding: 0;
 }
 .sheet > * {
@@ -27,7 +26,10 @@
 .sheet,
 .sheet table {
   font-size: 1.75cqw;
-  line-height: 1.3;
+  line-height: 1.35;
+}
+.sheet table {
+  border-collapse: collapse;
 }
 .sheet p {
   margin: 0;
@@ -39,108 +41,151 @@
   padding-top: 5.5cqw;
   margin: 0 7.6cqw 1cqw !important;
 }
+
+/* Émetteur */
 .sheet__issuer-name {
-  font-size: 2.35cqw;
+  font-size: 2.5cqw;
   font-weight: 700;
   color: var(--pdf-primary);
-  margin-bottom: 0.5cqw !important;
+  margin-bottom: 0.57cqw !important;
 }
 .sheet__issuer-extra {
   color: var(--pdf-muted);
   font-size: 1.5cqw;
-  margin-top: 0.7cqw !important;
+  margin-top: 0.38cqw !important;
 }
+.sheet__issuer-extra--first {
+  margin-top: 0.86cqw !important;
+}
+
+/* Client et encadré */
 .sheet__row {
   display: flex;
   justify-content: space-between;
-  gap: 3cqw;
-  margin-top: 6.6cqw;
+  align-items: flex-start;
+  gap: 4.8cqw;
+  margin-top: 5.7cqw;
 }
-.sheet__client-name {
-  font-weight: 700;
-  margin-bottom: 0.5cqw !important;
+.sheet__client {
+  min-width: 0;
 }
 .sheet__client p {
   overflow-wrap: anywhere;
 }
+.sheet__label {
+  font-size: 1.35cqw;
+  font-weight: 700;
+  color: var(--pdf-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.1cqw;
+  margin-bottom: 0.7cqw !important;
+}
+.sheet__client-name {
+  font-weight: 700;
+  font-size: 1.85cqw;
+  margin-bottom: 0.38cqw !important;
+}
 .sheet__box {
-  width: 37cqw;
+  width: 38cqw;
   flex: none;
-  border-collapse: collapse;
 }
 .sheet__box th,
 .sheet__box td {
-  text-align: right;
-  padding: 0.57cqw 1.4cqw 0.57cqw 0;
-  font-weight: 400;
+  padding: 0.8cqw 1.43cqw;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--pdf-rule);
 }
 .sheet__box th {
+  text-align: left;
+  font-weight: 400;
   color: var(--pdf-muted);
 }
 .sheet__box td {
+  text-align: right;
+  font-weight: 700;
   white-space: nowrap;
-  padding-left: 1cqw;
 }
 .sheet__box .sheet__band {
   background: var(--pdf-primary);
   color: var(--pdf-on-primary);
   font-weight: 700;
-  font-size: 3.65cqw;
-  letter-spacing: 0.17cqw;
-  padding: 1.2cqw 1.4cqw;
+  font-size: 3.36cqw;
+  letter-spacing: 0.34cqw;
+  text-align: center;
+  padding: 1.43cqw;
+  border-bottom: none;
 }
 .sheet__due th,
 .sheet__due td {
   background: var(--pdf-primary);
   color: var(--pdf-on-primary) !important;
   font-weight: 700 !important;
+  border-bottom: none;
+  padding-top: 1.05cqw;
+  padding-bottom: 1.05cqw;
 }
+
+/* Tableau des prestations */
 .sheet__lines {
   width: calc(100% - 15.2cqw);
-  border-collapse: collapse;
-  margin-top: 4.7cqw;
+  table-layout: fixed;
+  margin-top: 5.2cqw;
+}
+.sheet__col-desc {
+  width: 44%;
+}
+.sheet__col-qty,
+.sheet__col-unit {
+  width: 11%;
+}
+.sheet__col-price,
+.sheet__col-amount {
+  width: 17%;
 }
 .sheet__lines thead th {
   background: var(--pdf-primary);
   color: var(--pdf-on-primary);
   text-transform: uppercase;
-  font-size: 1.5cqw;
-  letter-spacing: 0.05cqw;
-  padding: 0.95cqw;
-  border: 1px solid var(--pdf-primary);
+  font-size: 1.42cqw;
+  letter-spacing: 0.07cqw;
+  padding: 1.14cqw 1.19cqw;
+  vertical-align: middle;
 }
 .sheet__lines td {
-  padding: 0.85cqw 0.95cqw;
-  border: 1px solid var(--pdf-border);
-  vertical-align: top;
+  padding: 1.05cqw 1.19cqw;
+  border-bottom: 1px solid var(--pdf-rule);
+  vertical-align: middle;
 }
 .sheet__lines .desc {
   text-align: left;
-  width: 46%;
   white-space: pre-line;
   overflow-wrap: anywhere;
+}
+.sheet__lines .center {
+  text-align: center;
+  white-space: nowrap;
 }
 .sheet__lines .num {
   text-align: right;
   white-space: nowrap;
 }
-.sheet__lines .unit {
-  text-align: center;
-}
 .sheet__total th,
 .sheet__total td {
   font-weight: 700;
   background: var(--pdf-total-bg);
-  text-align: right;
-  border: 1px solid var(--pdf-border);
-  padding: 0.85cqw 0.95cqw;
+  border-top: 2px solid var(--pdf-primary);
+  border-bottom: none;
+  padding: 1.24cqw 1.19cqw;
+  vertical-align: middle;
 }
 .sheet__total td.empty {
   background: transparent;
-  border: none;
+  border-top: none;
 }
+
+/* Pied */
 .sheet__footer {
-  margin-top: 4.7cqw;
+  margin-top: 4.76cqw;
 }
 .sheet__footer > p {
   margin-bottom: 0.7cqw !important;
@@ -152,4 +197,3 @@
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
-

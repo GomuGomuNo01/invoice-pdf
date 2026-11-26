@@ -3,6 +3,9 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
 async function fillInvoice(page: Page) {
+  await page.getByLabel('Votre nom ou votre entreprise').fill('Atelier Dupont');
+  await page.getByLabel('Votre adresse').fill('8 avenue des Lilas\n33000 Bordeaux');
+  await page.getByLabel('SIRET').fill('362 521 879 00034');
   await page.getByLabel('Numéro de facture').fill('558-00178');
   await page.getByLabel('Date de la facture').fill('2026-11-26');
   await page.getByLabel('Délai de paiement').fill('14');

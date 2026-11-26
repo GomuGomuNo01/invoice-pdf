@@ -21,7 +21,7 @@ class InvoiceCalculatorTest {
 
     private static InvoiceRequest request(List<InvoiceRequest.Line> lines, String date, int terms) {
         return new InvoiceRequest("558-00178", LocalDate.parse(date), terms,
-                new InvoiceRequest.Client("  Client SAS  ", List.of(" 1 rue A ", "", "75001 Paris")), lines, "   ");
+                new InvoiceRequest.Client("  Client SAS  ", List.of(" 1 rue A ", "", "75001 Paris")), lines, "   ", null);
     }
 
     @Test
