@@ -43,7 +43,7 @@ jobs:
       - run: ./mvnw -B verify
       - name: PDF d'exemple
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pdf-exemples
           path: backend/target/pdf-output/
@@ -91,7 +91,7 @@ jobs:
         working-directory: frontend
       - run: npm run test:e2e
         working-directory: frontend
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
