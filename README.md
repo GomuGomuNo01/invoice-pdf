@@ -11,7 +11,7 @@ Application web de génération de factures PDF. L'utilisateur saisit la facture
 
 | Partie | Technologies |
 |---|---|
-| Backend | Java 21, Spring Boot 4.1, Thymeleaf, OpenHTMLToPDF (PDFBox 3), springdoc |
+| Backend | Java 21, Spring Boot 4.2, Thymeleaf, OpenHTMLToPDF (PDFBox 3), springdoc |
 | Frontend | React 19, TypeScript 5.9, Vite 8, Zod 4, Vitest, Playwright |
 | Police du PDF | Carlito (licence OFL, métriquement compatible avec Calibri), embarquée |
 
@@ -116,6 +116,17 @@ Les tests backend écrivent des PDF d'exemple dans `backend/target/pdf-output/` 
 - En-têtes de sécurité HTTP, CORS restreint, aucune trace d'erreur renvoyée au client.
 - Aucun contenu de facture dans les journaux (identifiants techniques uniquement).
 - Hook `pre-commit` et CI : refus des fichiers internes, des tirets longs et des secrets (gitleaks).
+
+## Branches
+
+Le dépôt n'utilise que deux branches durables :
+
+| Branche | Rôle |
+|---|---|
+| `dev` | Développement courant. Les mises à jour Dependabot y arrivent. |
+| `main` | Version stable. On y fusionne `dev` par pull request, une fois la CI verte. |
+
+Les branches de pull request (Dependabot comprises) sont temporaires et supprimées après fusion.
 
 ## Licence
 

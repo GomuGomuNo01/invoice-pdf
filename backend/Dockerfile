@@ -15,6 +15,5 @@ COPY --from=build /app/target/invoice-pdf-backend-*.jar app.jar
 USER app
 EXPOSE 8080
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -Djava.awt.headless=true"
-HEALTHCHECK --interval=30s --timeout=5s --start-period=40s \
-  CMD wget -qO- http://localhost:8080/actuator/health || exit 1
+# Pas de HEALTHCHECK : l'image JRE ne contient ni wget ni curl. Santé : GET /actuator/health.
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

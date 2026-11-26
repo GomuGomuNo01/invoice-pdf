@@ -1,12 +1,15 @@
 version: 2
+# Toutes les mises à jour arrivent sur dev, jamais directement sur main.
 updates:
   - package-ecosystem: maven
     directory: /backend
+    target-branch: dev
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
   - package-ecosystem: npm
     directory: /frontend
+    target-branch: dev
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -15,11 +18,13 @@ updates:
         dependency-type: development
   - package-ecosystem: github-actions
     directory: /
+    target-branch: dev
     schedule:
       interval: monthly
   - package-ecosystem: docker
     directories:
       - /backend
       - /frontend
+    target-branch: dev
     schedule:
       interval: monthly
