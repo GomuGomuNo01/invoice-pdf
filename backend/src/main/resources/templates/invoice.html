@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="|Facture ${invoice.invoiceNumber}|">Facture</title>
+    <!--
+        Tokens du visuel (voir frontend/src/styles/tokens.css pour l'aperçu) :
+        primaire #1F3864, texte #1A1A1A, gris #6E6E6E, bordure #BFBFBF.
+        La couleur primaire est une estimation à confirmer avec le fichier Word source.
+    -->
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 18mm 16mm 20mm 16mm;
+            @top-right {
+                content: "Page " counter(page) " sur " counter(pages);
+                font-family: Carlito, sans-serif;
+                font-size: 8.5pt;
+                color: #6E6E6E;
+                vertical-align: bottom;
+                padding-bottom: 2mm;
+            }
+        }
+        body {
+            font-family: Carlito, sans-serif;
+            font-size: 10.5pt;
+            line-height: 1.3;
+            color: #1A1A1A;
+            margin: 0;
+        }
+        .header { width: 100%; border-collapse: collapse; }
+        .header td { vertical-align: top; padding: 0; }
+        .issuer-name { font-size: 14pt; font-weight: bold; color: #1F3864; margin-bottom: 1mm; }
+        .issuer-extra { color: #4D4D4D; font-size: 9pt; margin-top: 1.5mm; }
+        .client { padding-top: 14mm !important; }
+        .client-label { font-weight: bold; margin-bottom: 1mm; }
+        .invoice-box-cell { width: 78mm; padding-top: 14mm !important; }
+        .invoice-box { width: 100%; border-collapse: collapse; }
+        .invoice-box .band {
+            background-color: #1F3864;
+            color: #FFFFFF;
+            font-weight: bold;
+            font-size: 22pt;
+            letter-spacing: 1pt;
+            text-align: right;
+            padding: 2.5mm 3mm;
+        }
+        .invoice-box td.label { text-align: right; padding: 1.2mm 3mm 1.2mm 0; color: #4D4D4D; }
+        .invoice-box td.value { text-align: right; padding: 1.2mm 3mm 1.2mm 2mm; width: 30mm; white-space: nowrap; }
+        .invoice-box tr.due td { background-color: #1F3864; color: #FFFFFF; font-weight: bold; }
+        .invoice-box tr.due td.label { color: #FFFFFF; }
+
+        .lines {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10mm;
+            -fs-table-paginate: paginate;
+            -fs-border-rendering: no-bevel;
+        }
+        .lines thead { display: table-header-group; }
+        .lines th {
+            background-color: #1F3864;
+            color: #FFFFFF;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 9pt;
+            letter-spacing: 0.3pt;
+            padding: 2mm 2mm;
+            border: 0.5pt solid #1F3864;
+        }
+        .lines td { padding: 1.8mm 2mm; border: 0.5pt solid #BFBFBF; vertical-align: top; }
+        .lines tr { page-break-inside: avoid; }
+        .lines .num { text-align: right; white-space: nowrap; }
+        .lines .unit { text-align: center; }
+        .lines .desc { text-align: left; white-space: pre-line; word-wrap: break-word; }
+        .lines th.desc { white-space: normal; }
+        .lines tr.total td { font-weight: bold; }
+        .lines tr.total td.empty { border: none; }
+        .lines tr.total td.total-label { background-color: #F2F2F2; text-align: right; white-space: nowrap; }
+        .lines tr.total td.total-value { background-color: #F2F2F2; }
+        .col-desc { width: 46%; }
+        .col-qty { width: 11%; }
+        .col-unit { width: 11%; }
+        .col-price { width: 16%; }
+        .col-amount { width: 16%; }
+
+        .footer-content { margin-top: 10mm; page-break-inside: avoid; }
+        .footer-title { font-style: italic; margin-bottom: 1.5mm; }
+        .notes { white-space: pre-line; margin-bottom: 1.5mm; }
+        .vat-mention { margin-top: 1mm; }
+    </style>
+</head>
+<body>
+
+<table class="header">
+    <tr>
+        <td colspan="2">
+            <div class="issuer-name" th:text="${issuer.name}">Nom de l'entreprise</div>
+            <div th:each="line : ${issuer.addressLines()}" th:text="${line}">Adresse</div>
+            <div class="issuer-extra" th:if="${issuer.siret != null}" th:text="|SIRET : ${issuer.siret}|">SIRET</div>
+            <div class="issuer-extra" th:if="${issuer.email != null or issuer.phone != null}">
+                <span th:if="${issuer.email != null}" th:text="${issuer.email}">email</span>
+                <span th:if="${issuer.email != null and issuer.phone != null}"> - </span>
+                <span th:if="${issuer.phone != null}" th:text="${issuer.phone}">téléphone</span>
+            </div>
+        </td>
+    </tr>
+    <tr>
+        <td class="client">
+            <div class="client-label" th:text="${invoice.clientName}">Nom du client</div>
+            <div th:each="line : ${invoice.clientAddressLines}" th:text="${line}">Adresse du client</div>
+        </td>
+        <td class="invoice-box-cell">
+            <table class="invoice-box">
+                <tr><td class="band" colspan="2">FACTURE</td></tr>
+                <tr>
+                    <td class="label">Date de facture</td>
+                    <td class="value" th:text="${fmt.date(invoice.invoiceDate)}">26/11/2026</td>
+                </tr>
+                <tr>
+                    <td class="label">Numéro de facture</td>
+                    <td class="value" th:text="${invoice.invoiceNumber}">558-00178</td>
+                </tr>
+                <tr>
+                    <td class="label">Conditions de paiement</td>
+                    <td class="value" th:text="|${invoice.paymentTermsDays} jours|">14 jours</td>
+                </tr>
+                <tr>
+                    <td class="label">Date d'échéance</td>
+                    <td class="value" th:text="${fmt.date(invoice.dueDate)}">10/12/2026</td>
+                </tr>
+                <tr class="due">
+                    <td class="label">Total à payer</td>
+                    <td class="value" th:text="${fmt.money(invoice.totalDue)}">0,00 €</td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<table class="lines">
+    <thead>
+    <tr>
+        <th class="desc col-desc">Description</th>
+        <th class="num col-qty">Quantité</th>
+        <th class="unit col-unit">Unité</th>
+        <th class="num col-price">Prix</th>
+        <th class="num col-amount">Montant</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="line : ${invoice.lines}">
+        <td class="desc" th:text="${line.description}">Prestation</td>
+        <td class="num" th:text="${fmt.quantity(line.quantity)}">1</td>
+        <td class="unit" th:text="${line.unit}"></td>
+        <td class="num" th:text="${fmt.money(line.unitPrice)}">0,00 €</td>
+        <td class="num" th:text="${fmt.money(line.amount)}">0,00 €</td>
+    </tr>
+    <tr class="total">
+        <td class="empty"></td>
+        <td class="empty"></td>
+        <td class="empty"></td>
+        <td class="total-label">TOTAL HT</td>
+        <td class="num total-value" th:text="${fmt.money(invoice.totalExclTax)}">0,00 €</td>
+    </tr>
+    </tbody>
+</table>
+
+<div class="footer-content">
+    <div class="footer-title">Conditions de paiement et mentions particulières :</div>
+    <div class="notes" th:if="${invoice.notes != null}" th:text="${invoice.notes}">Notes</div>
+    <div class="vat-mention">TVA non applicable, article 293B du code général des impôts</div>
+    <div class="vat-mention" th:if="${issuer.iban != null}" th:text="|IBAN : ${issuer.iban}|">IBAN</div>
+</div>
+
+</body>
+</html>

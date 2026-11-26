@@ -1,0 +1,86 @@
+/*
+ * Design tokens. Les valeurs "pdf-*" sont identiques au gabarit PDF
+ * (backend/src/main/resources/templates/invoice.html) : ne pas les modifier ici seulement.
+ * Couleur primaire : estimation du bleu foncé du modèle Word, à confirmer avec le fichier source.
+ * Contrastes vérifiés (WCAG AA) : voir docs-local/DESIGN.md.
+ */
+:root {
+  color-scheme: light dark;
+
+  --pdf-primary: #1f3864;
+  --pdf-on-primary: #ffffff;
+  --pdf-text: #1a1a1a;
+  --pdf-muted: #4d4d4d;
+  --pdf-subtle: #6e6e6e;
+  --pdf-border: #bfbfbf;
+  --pdf-total-bg: #f2f2f2;
+  --pdf-font: 'Carlito', 'Calibri', 'Segoe UI', Arial, sans-serif;
+
+  /* Surfaces */
+  --ui-bg: #ffffff;
+  --ui-canvas: #f1f2f4;
+  --ui-raised: #ffffff;
+  /* Texte */
+  --ui-text: #16191f;
+  --ui-muted: #545b68;
+  /* Traits : "line" est décoratif, "control" délimite un champ (3:1 au moins) */
+  --ui-line: #e2e4e8;
+  --ui-control: #858c98;
+  --ui-control-hover: #5c6370;
+  /* Action principale : le bleu du PDF */
+  --ui-primary: #1f3864;
+  --ui-primary-hover: #142849;
+  --ui-on-primary: #ffffff;
+  --ui-primary-soft: #e8edf6;
+  --ui-primary-soft-hover: #d9e1ef;
+  /* États */
+  --ui-danger: #b42318;
+  --ui-danger-soft: #fdf1f0;
+  --ui-success: #1d6b3a;
+  --ui-success-soft: #eef7f1;
+  --ui-focus: #2457c5;
+
+  --sheet-shadow: 0 1px 2px rgb(16 24 40 / 0.06), 0 8px 24px rgb(16 24 40 / 0.1);
+  --raised-shadow: 0 4px 16px rgb(16 24 40 / 0.14);
+
+  --ui-font: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --space-8: 56px;
+  --target: 44px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ui-bg: #15171b;
+    --ui-canvas: #0e1013;
+    --ui-raised: #1f2228;
+    --ui-text: #eceef2;
+    --ui-muted: #a9b0bc;
+    --ui-line: #2b2f36;
+    --ui-control: #747c89;
+    --ui-control-hover: #9aa2ae;
+    --ui-primary: #a9c2f2;
+    --ui-primary-hover: #c3d5f7;
+    --ui-on-primary: #0e1a30;
+    --ui-primary-soft: #1f2a3c;
+    --ui-primary-soft-hover: #28364c;
+    --ui-danger: #ff9b91;
+    --ui-danger-soft: #36191a;
+    --ui-success: #86d7a1;
+    --ui-success-soft: #15291c;
+    --ui-focus: #8fb4ff;
+
+    --sheet-shadow: 0 0 0 1px rgb(255 255 255 / 0.06), 0 10px 30px rgb(0 0 0 / 0.55);
+    --raised-shadow: 0 0 0 1px rgb(255 255 255 / 0.08), 0 8px 24px rgb(0 0 0 / 0.5);
+  }
+}
