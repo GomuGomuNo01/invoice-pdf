@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: invoice-pdf
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+  thymeleaf:
+    cache: true
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+  tomcat:
+    max-swallow-size: 1MB
+
+invoice:
+  issuer:
+    name: "${INVOICE_ISSUER_NAME:Nom de l'entreprise}"
+    address-line1: "${INVOICE_ISSUER_ADDRESS_LINE1:Adresse}"
+    address-line2: "${INVOICE_ISSUER_ADDRESS_LINE2:}"
+    postal-code: "${INVOICE_ISSUER_POSTAL_CODE:00000}"
+    city: "${INVOICE_ISSUER_CITY:Ville}"
+    siret: "${INVOICE_ISSUER_SIRET:}"
+    email: "${INVOICE_ISSUER_EMAIL:}"
+    phone: "${INVOICE_ISSUER_PHONE:}"
+    iban: "${INVOICE_ISSUER_IBAN:}"
+  api:
+    cors-allowed-origins: "${INVOICE_CORS_ALLOWED_ORIGINS:http://localhost:5173}"
+    max-request-bytes: 262144
+    rate-limit-per-minute: ${INVOICE_RATE_LIMIT_PER_MINUTE:30}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+springdoc:
+  api-docs:
+    path: /api/v1/openapi.json
+  swagger-ui:
+    path: /api/docs
+    enabled: ${INVOICE_SWAGGER_UI_ENABLED:true}
+
+logging:
+  level:
+    root: INFO
