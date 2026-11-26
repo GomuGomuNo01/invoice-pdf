@@ -1,5 +1,5 @@
 # Construction
-FROM eclipse-temurin:21-jdk-noble AS build
+FROM eclipse-temurin:25-jdk-noble AS build
 WORKDIR /app
 COPY .mvn .mvn
 COPY mvnw pom.xml ./
@@ -8,7 +8,7 @@ COPY src src
 RUN ./mvnw -B -q package -DskipTests
 
 # Exécution : JRE seul, utilisateur non root
-FROM eclipse-temurin:21-jre-noble
+FROM eclipse-temurin:25-jre-noble
 RUN groupadd --system app && useradd --system --gid app --no-create-home app
 WORKDIR /app
 COPY --from=build /app/target/invoice-pdf-backend-*.jar app.jar
