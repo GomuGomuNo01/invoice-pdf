@@ -6,6 +6,8 @@ set -eu
 
 BASE="http://localhost:8081"
 ECHEC=0
+# Chaque requête est bornée : un backend bloqué ne doit pas suspendre le script.
+CURL="curl -s --connect-timeout 3 --max-time 30"
 
 nettoyer() {
   if [ "$ECHEC" -ne 0 ]; then
@@ -30,15 +32,15 @@ docker compose up -d
 
 echo "3. Attente du service (proxy nginx vers le backend)"
 i=0
-until [ "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/v1/issuer")" = "200" ]; do
+until [ "$($CURL --max-time 5 -o /dev/null -w '%{http_code}' "$BASE/api/v1/issuer")" = "200" ]; do
   i=$((i + 1))
-  [ "$i" -gt 60 ] && echouer "le backend ne répond pas via nginx après 120 s"
+  [ "$i" -gt 60 ] && echouer "le backend ne répond pas via nginx après 60 tentatives (2 à 7 s chacune)"
   sleep 2
 done
 echo "   service prêt"
 
 echo "4. Page d'accueil et en-têtes de sécurité"
-ENTETES=$(curl -s -D - -o /tmp/index.html "$BASE/")
+ENTETES=$($CURL -D - -o /tmp/index.html "$BASE/")
 echo "$ENTETES" | head -1 | grep -q " 200" || echouer "la page d'accueil ne renvoie pas 200"
 grep -q '<div id="root">' /tmp/index.html || echouer "la page d'accueil n'est pas l'application"
 for entete in "Content-Security-Policy" "X-Content-Type-Options: nosniff" "X-Frame-Options: DENY" "Referrer-Policy: no-referrer"; do
@@ -48,7 +50,7 @@ echo "$ENTETES" | grep -qi "^Server: nginx/" && echouer "nginx expose sa version
 echo "   OK"
 
 echo "5. Génération d'un PDF via le proxy"
-CODE=$(curl -s -o /tmp/facture.pdf -D /tmp/entetes-pdf.txt -w '%{http_code}' \
+CODE=$($CURL -o /tmp/facture.pdf -D /tmp/entetes-pdf.txt -w '%{http_code}' \
   -H 'Content-Type: application/json' \
   --data-binary @- "$BASE/api/v1/invoices/pdf" <<'JSON'
 {
@@ -68,7 +70,7 @@ grep -qi 'filename="Facture-DOCKER-001.pdf"' /tmp/entetes-pdf.txt || echouer "no
 echo "   PDF de $(wc -c < /tmp/facture.pdf) octets"
 
 echo "6. Requête invalide refusée proprement"
-CODE=$(curl -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d '{"invoiceNumber":""}' "$BASE/api/v1/invoices/pdf")
+CODE=$($CURL -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d '{"invoiceNumber":""}' "$BASE/api/v1/invoices/pdf")
 [ "$CODE" = "400" ] || echouer "requête invalide : code $CODE au lieu de 400"
 echo "   OK"
 
