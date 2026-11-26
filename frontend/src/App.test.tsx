@@ -41,7 +41,7 @@ afterEach(() => {
 
 async function fillValidInvoice(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText(/Numéro de facture/), '558-00178');
-  const date = screen.getByLabelText(/Date de facture/);
+  const date = screen.getByLabelText(/Date de la facture/);
   await user.clear(date);
   await user.type(date, '2026-11-26');
   await user.type(screen.getByLabelText(/Nom du client/), 'Société Cliente');
@@ -65,6 +65,7 @@ describe('parcours de saisie', () => {
     expect(screen.getByTestId('total-ht').textContent).toBe(`15,02${NBSP}€`);
     expect(screen.getByTestId('total-due').textContent).toBe(`15,02${NBSP}€`);
     expect(screen.getByTestId('due-date')).toHaveTextContent('10/12/2026');
+    expect(screen.getAllByText('À payer avant le 10/12/2026').length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole('button', { name: 'Ajouter une ligne' }));
     const descriptions = screen.getAllByLabelText(/Description/);
@@ -78,9 +79,9 @@ describe('parcours de saisie', () => {
     render(<App />);
     await fillValidInvoice(user);
 
-    await user.click(screen.getByRole('button', { name: 'Générer le PDF' }));
+    await user.click(screen.getByRole('button', { name: 'Télécharger le PDF' }));
 
-    expect(await screen.findByText('PDF généré : Facture-558-00178.pdf')).toBeInTheDocument();
+    expect(await screen.findByText('PDF téléchargé : Facture-558-00178.pdf')).toBeInTheDocument();
     const call = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/api/v1/invoices/pdf'));
     expect(call).toBeDefined();
     const body = JSON.parse(String((call![1] as RequestInit).body));
@@ -99,10 +100,11 @@ describe('parcours de saisie', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: 'Générer le PDF' }));
+    await user.click(screen.getByRole('button', { name: 'Télécharger le PDF' }));
 
     const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('Corriger les erreurs');
+    expect(alert).toHaveTextContent('Il reste');
+    expect(alert).toHaveTextContent('à compléter avant de télécharger le PDF');
     expect(within(alert).getByText('Le numéro de facture est obligatoire.')).toBeInTheDocument();
     expect(screen.getByLabelText(/Numéro de facture/)).toHaveAttribute('aria-invalid', 'true');
     await waitFor(() => expect(alert).toHaveFocus());
@@ -125,7 +127,7 @@ describe('parcours de saisie', () => {
     const user = userEvent.setup();
     render(<App />);
     await fillValidInvoice(user);
-    await user.click(screen.getByRole('button', { name: 'Générer le PDF' }));
+    await user.click(screen.getByRole('button', { name: 'Télécharger le PDF' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('La facture contient des erreurs.');
     expect(screen.getByLabelText(/Prix unitaire/)).toHaveAttribute('aria-invalid', 'true');
@@ -139,7 +141,7 @@ describe('parcours de saisie', () => {
     const user = userEvent.setup();
     render(<App />);
     await fillValidInvoice(user);
-    await user.click(screen.getByRole('button', { name: 'Générer le PDF' }));
+    await user.click(screen.getByRole('button', { name: 'Télécharger le PDF' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Serveur injoignable');
   });
 
@@ -150,7 +152,10 @@ describe('parcours de saisie', () => {
     await user.click(screen.getByRole('button', { name: 'Ajouter une ligne' }));
     await user.type(screen.getAllByLabelText(/Description/)[1]!, 'Seconde');
 
+    expect(screen.queryByRole('button', { name: 'Monter la ligne 2' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Déplacer la ligne 2' }));
     await user.click(screen.getByRole('button', { name: 'Monter la ligne 2' }));
+    expect(screen.queryByRole('button', { name: 'Monter la ligne 2' })).not.toBeInTheDocument();
     expect(screen.getAllByLabelText(/Description/).map((el) => (el as HTMLTextAreaElement).value)).toEqual([
       'Seconde',
       'Première',
@@ -159,5 +164,37 @@ describe('parcours de saisie', () => {
     await user.click(screen.getByRole('button', { name: 'Supprimer la ligne 1' }));
     expect(screen.getAllByLabelText(/Description/)).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Supprimer la ligne 1' })).toBeDisabled();
+  });
+
+  it("n'affiche pas d'erreur avant une tentative ni sur un champ seulement traversé", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const number = screen.getByLabelText(/Numéro de facture/);
+    await user.click(number);
+    await user.tab();
+    expect(number).not.toHaveAttribute('aria-invalid');
+    expect(screen.queryByText('Le numéro de facture est obligatoire.')).not.toBeInTheDocument();
+
+    await user.type(number, '../x');
+    expect(number).not.toHaveAttribute('aria-invalid');
+    await user.tab();
+    expect(number).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    await user.clear(number);
+    await user.type(number, '2026-001');
+    expect(number).not.toHaveAttribute('aria-invalid');
+  });
+
+  it('le résumé se met à jour pendant la correction', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await fillValidInvoice(user);
+    await user.clear(screen.getByLabelText(/Nom du client/));
+    await user.click(screen.getByRole('button', { name: 'Télécharger le PDF' }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Il reste 1 point à compléter');
+    await user.type(screen.getByLabelText(/Nom du client/), 'Client');
+    expect(alert).toHaveTextContent('Tout est complet');
   });
 });

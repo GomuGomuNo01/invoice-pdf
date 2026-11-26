@@ -76,7 +76,7 @@ const lineSchema = z.object({
   quantity: z.string().superRefine((value, ctx) => {
     const scaled = parseScaled(value, QUANTITY_SCALE);
     if (value.trim() === '') ctx.addIssue({ code: 'custom', message: 'La quantité est obligatoire.' });
-    else if (scaled === null) ctx.addIssue({ code: 'custom', message: 'Quantité invalide (au plus 3 décimales).' });
+    else if (scaled === null) ctx.addIssue({ code: 'custom', message: 'Écrivez un nombre, avec au plus 3 chiffres après la virgule (ex. 1,5).' });
     else if (scaled <= 0n) ctx.addIssue({ code: 'custom', message: 'La quantité doit être strictement positive.' });
     else if (scaled > LIMITS.maxQuantity) ctx.addIssue({ code: 'custom', message: 'La quantité est trop élevée.' });
   }),
@@ -88,7 +88,7 @@ const lineSchema = z.object({
   unitPrice: z.string().superRefine((value, ctx) => {
     const cents = parseScaled(value, PRICE_SCALE);
     if (value.trim() === '') ctx.addIssue({ code: 'custom', message: 'Le prix unitaire est obligatoire.' });
-    else if (cents === null) ctx.addIssue({ code: 'custom', message: 'Prix invalide (au plus 2 décimales).' });
+    else if (cents === null) ctx.addIssue({ code: 'custom', message: 'Écrivez un prix, avec au plus 2 chiffres après la virgule (ex. 12,50).' });
     else if (cents > LIMITS.maxUnitPriceCents) ctx.addIssue({ code: 'custom', message: 'Le prix unitaire est trop élevé.' });
   }),
 });
@@ -100,16 +100,16 @@ export const invoiceDraftSchema = z.object({
     .min(1, 'Le numéro de facture est obligatoire.')
     .regex(
       LIMITS.invoiceNumberRegex,
-      'Le numéro accepte 1 à 30 caractères : lettres, chiffres, - / _ . (ex. 558-00178).',
+      'Utilisez seulement des lettres, des chiffres et - / _ . (30 caractères au plus, ex. 2026-001).',
     ),
   invoiceDate: z.iso.date('La date de facture est obligatoire.'),
   paymentTermsDays: z
     .string()
     .trim()
-    .regex(/^\d{1,3}$/, 'Les conditions de paiement doivent être comprises entre 0 et 365 jours.')
+    .regex(/^\d{1,3}$/, 'Le délai de paiement doit être compris entre 0 et 365 jours.')
     .refine(
       (value) => Number(value) <= LIMITS.maxPaymentTermsDays,
-      'Les conditions de paiement doivent être comprises entre 0 et 365 jours.',
+      'Le délai de paiement doit être compris entre 0 et 365 jours.',
     ),
   clientName: z
     .string()
