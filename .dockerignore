@@ -1,0 +1,16 @@
+# Contexte de l'image unique (Dockerfile à la racine) : seulement les sources utiles.
+.git
+.github
+.githooks
+docs-local
+deploy
+scripts
+**/node_modules
+frontend/dist
+frontend/test-results
+frontend/playwright-report
+frontend/coverage
+backend/target
+**/.env
+**/.env.*
+*.md

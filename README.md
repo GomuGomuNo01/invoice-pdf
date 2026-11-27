@@ -58,7 +58,16 @@ Puis ouvrir http://localhost:8081.
 
 ## Mise en production
 
-La pile de production est dans `deploy/` : Caddy (HTTPS automatique, accès restreint par identifiant et mot de passe, santé publique sur `/sante`) devant nginx et le backend en profil `prod`.
+### Hébergement actuel : Render (offre gratuite)
+
+Un seul conteneur, construit par le `Dockerfile` à la racine : l'application Spring Boot sert l'interface et l'API (profil `prod`, réglée pour 512 Mo). Le fichier `render.yaml` décrit le service ; Render redéploie chaque nouveau commit de `main`.
+
+- Essai local de l'image, dans les conditions de l'offre gratuite : `sh scripts/tester-image-unique.sh` (exécuté par la CI).
+- Vérification après un déploiement : `sh scripts/verifier-en-ligne.sh https://adresse-du-site [--limite]`.
+
+### Auto-hébergement (serveur avec Caddy)
+
+La pile de production auto-hébergée est dans `deploy/` : Caddy (HTTPS automatique, accès restreint par identifiant et mot de passe, santé publique sur `/sante`) devant nginx et le backend en profil `prod`.
 
 1. Publier les images : poser une étiquette de version sur `main` (ex. `git tag v1.0.0 && git push origin v1.0.0`). Le workflow « Publication » envoie `invoice-pdf-backend` et `invoice-pdf-frontend` sur ghcr.io, avec SBOM et attestation de provenance.
 2. Sur le serveur, dans `deploy/` : copier `.env.prod.example` en `.env.prod`, renseigner le domaine, les images, l'accès et les mentions légales du site.
