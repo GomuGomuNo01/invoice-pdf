@@ -3,7 +3,9 @@
 # Usage : sh scripts/verifier-en-ligne.sh https://invoice-pdf.onrender.com [--limite]
 #   --limite : vérifie aussi qu'une adresse inventée ne contourne pas la limite de débit.
 #              Envoie 31 demandes : la génération est bloquée une minute pour votre adresse ensuite.
-set -eu
+# Pas de set -e : chaque étape contrôle elle-même le résultat et affiche la cause d'un échec
+# (avec set -e, une erreur réseau de curl arrêtait le script sans message).
+set -u
 
 BASE="${1:?Usage : sh scripts/verifier-en-ligne.sh https://adresse-du-site [--limite]}"
 BASE="${BASE%/}"
@@ -17,6 +19,7 @@ echouer() {
 
 echo "1. Santé (le premier appel peut réveiller le service : jusqu'à une minute)"
 CODE=$($CURL -o /dev/null -w '%{http_code}' "$BASE/actuator/health")
+[ "$CODE" = "000" ] && echouer "santé : pas de réponse (site injoignable ou réveil trop long)"
 [ "$CODE" = "200" ] || echouer "santé : code $CODE"
 echo "   OK, version en ligne : $($CURL "$BASE/api/v1/version")"
 
@@ -46,6 +49,7 @@ CODE=$($CURL -o /tmp/facture-en-ligne.pdf -w '%{http_code}' -H 'Content-Type: ap
 }
 JSON
 )
+[ "$CODE" = "000" ] && echouer "génération du PDF : pas de réponse (délai dépassé ou connexion coupée)"
 [ "$CODE" = "200" ] || echouer "génération du PDF : code $CODE"
 [ "$(head -c 5 /tmp/facture-en-ligne.pdf)" = "%PDF-" ] || echouer "la réponse n'est pas un PDF"
 echo "   OK"
