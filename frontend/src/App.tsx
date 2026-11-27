@@ -4,6 +4,8 @@ import { InputField, TextAreaField } from './components/Field';
 import { Icon } from './components/Icon';
 import { InvoicePreview } from './components/InvoicePreview';
 import { LegalDialog, type LegalPage } from './components/LegalDialog';
+import { ResetDialog } from './components/ResetDialog';
+import { ThemeToggle } from './components/ThemeToggle';
 import { LinesEditor } from './components/LinesEditor';
 import {
   EMPTY_ISSUER,
@@ -27,6 +29,7 @@ type Status =
   | { kind: 'idle' }
   | { kind: 'generating' }
   | { kind: 'success'; fileName: string }
+  | { kind: 'notice'; message: string }
   | { kind: 'invalid' }
   | { kind: 'error'; message: string };
 
@@ -83,6 +86,7 @@ export default function App() {
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const [view, setView] = useState<View>('form');
   const [legalPage, setLegalPage] = useState<LegalPage | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
   const edited = useRef(new Set<string>());
   const summaryRef = useRef<HTMLDivElement>(null);
   const previewTitleRef = useRef<HTMLHeadingElement>(null);
@@ -150,7 +154,7 @@ export default function App() {
 
   function clearTransientStatus() {
     setServerErrors({});
-    setStatus((current) => (current.kind === 'success' || current.kind === 'error' ? { kind: 'idle' } : current));
+    setStatus((current) => (current.kind === 'success' || current.kind === 'error' || current.kind === 'notice' ? { kind: 'idle' } : current));
   }
 
   function update<K extends keyof InvoiceDraft>(key: K, value: InvoiceDraft[K]) {
@@ -227,15 +231,26 @@ export default function App() {
     }
   }
 
-  function reset() {
-    if (!isBlank(draft) && !window.confirm('Effacer la facture en cours et recommencer ?')) return;
-    setDraft((current) => emptyDraft(todayIso(), pickIssuer(current)));
+  const hasIssuer = Object.values(pickIssuer(draft)).some((value) => value.trim() !== '');
+
+  /** Remise à zéro, après confirmation dans ResetDialog. */
+  function reset(keepIssuer: boolean) {
+    if (!keepIssuer) clearIssuer();
+    setDraft((current) => emptyDraft(todayIso(), keepIssuer ? pickIssuer(current) : EMPTY_ISSUER));
     setSubmitted(false);
     setTouched(new Set());
     edited.current = new Set();
     setServerErrors({});
-    setStatus({ kind: 'idle' });
+    setResetOpen(false);
+    setStatus({
+      kind: 'notice',
+      message: keepIssuer && hasIssuer ? 'Nouvelle facture prête. Vos coordonnées sont gardées.' : 'Tout est effacé.',
+    });
     showView('form');
+    // Le focus va au premier champ utile une fois la fenêtre fermée.
+    requestAnimationFrame(() =>
+      document.getElementById(keepIssuer && hasIssuer ? 'clientName' : 'issuerName')?.focus(),
+    );
   }
 
   const showSummary = status.kind === 'invalid' || status.kind === 'error';
@@ -257,10 +272,13 @@ export default function App() {
             <span className="brand__mark" aria-hidden="true" />
             Factures
           </p>
-          <button type="button" className="button button--quiet button--small" onClick={reset}>
-            <Icon name="refresh" size={18} />
-            Recommencer
-          </button>
+          <div className="topbar__actions">
+            <ThemeToggle />
+            <button type="button" className="button button--quiet button--small" onClick={() => setResetOpen(true)}>
+              <Icon name="refresh" size={18} />
+              Recommencer
+            </button>
+          </div>
         </div>
       </header>
 
@@ -574,6 +592,12 @@ export default function App() {
                   <span>PDF téléchargé : {status.fileName}</span>
                 </p>
               ) : null}
+              {status.kind === 'notice' ? (
+                <p className="bar__success">
+                  <Icon name="check" size={18} />
+                  <span>{status.message}</span>
+                </p>
+              ) : null}
             </div>
           </div>
         </div>
@@ -590,6 +614,16 @@ export default function App() {
           </div>
         </section>
       </main>
+
+      {resetOpen ? (
+        <ResetDialog
+          invoiceHasContent={!isBlank(draft)}
+          hasIssuer={hasIssuer}
+          onNewInvoice={() => reset(true)}
+          onClearAll={() => reset(false)}
+          onClose={() => setResetOpen(false)}
+        />
+      ) : null}
 
       {legalPage ? (
         <LegalDialog

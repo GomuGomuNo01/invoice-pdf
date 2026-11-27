@@ -44,6 +44,11 @@ invoice:
     host-name: "${INVOICE_SITE_HOST_NAME:}"
     host-address: "${INVOICE_SITE_HOST_ADDRESS:}"
     host-contact: "${INVOICE_SITE_HOST_CONTACT:}"
+  # Anti-veille (hébergement gratuit qui s'endort) : adresse publique de santé à appeler, vide = inactif.
+  keep-awake:
+    url: "${INVOICE_KEEP_AWAKE_URL:}"
+    interval: PT10M
+    initial-delay: PT2M
   # Commit déployé, fourni par l'hébergeur (Render : RENDER_GIT_COMMIT) ou par GIT_COMMIT.
   build:
     commit: "${RENDER_GIT_COMMIT:${GIT_COMMIT:}}"

@@ -60,8 +60,13 @@
   --target: 44px;
 }
 
+/*
+ * Thème : par défaut celui de l'appareil (prefers-color-scheme). L'utilisateur peut forcer
+ * le clair ou le sombre : l'attribut data-theme est posé sur <html> (public/theme-init.js avant
+ * l'affichage, puis l'interface). Les couleurs sombres sont les mêmes dans les deux cas.
+ */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --ui-bg: #15171b;
     --ui-canvas: #0e1013;
     --ui-raised: #1f2228;
@@ -84,4 +89,33 @@
     --sheet-shadow: 0 0 0 1px rgb(255 255 255 / 0.06), 0 10px 30px rgb(0 0 0 / 0.55);
     --raised-shadow: 0 0 0 1px rgb(255 255 255 / 0.08), 0 8px 24px rgb(0 0 0 / 0.5);
   }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --ui-bg: #15171b;
+  --ui-canvas: #0e1013;
+  --ui-raised: #1f2228;
+  --ui-text: #eceef2;
+  --ui-muted: #a9b0bc;
+  --ui-line: #2b2f36;
+  --ui-control: #747c89;
+  --ui-control-hover: #9aa2ae;
+  --ui-primary: #a9c2f2;
+  --ui-primary-hover: #c3d5f7;
+  --ui-on-primary: #0e1a30;
+  --ui-primary-soft: #1f2a3c;
+  --ui-primary-soft-hover: #28364c;
+  --ui-danger: #ff9b91;
+  --ui-danger-soft: #36191a;
+  --ui-success: #86d7a1;
+  --ui-success-soft: #15291c;
+  --ui-focus: #8fb4ff;
+
+  --sheet-shadow: 0 0 0 1px rgb(255 255 255 / 0.06), 0 10px 30px rgb(0 0 0 / 0.55);
+  --raised-shadow: 0 0 0 1px rgb(255 255 255 / 0.08), 0 8px 24px rgb(0 0 0 / 0.5);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
 }
