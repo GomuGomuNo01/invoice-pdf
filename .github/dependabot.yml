@@ -16,6 +16,18 @@ updates:
     groups:
       dev-dependencies:
         dependency-type: development
+    # Versions majeures bloquées tant que le projet ne peut pas les suivre :
+    # ESLint 10 n'est pas encore supporté par eslint-plugin-jsx-a11y ; les types de Node suivent
+    # la version de Node utilisée (24) ; jsdom 30 et plus exige une version de Node plus récente.
+    ignore:
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: jsdom
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     target-branch: dev
