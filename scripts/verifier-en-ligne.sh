@@ -36,9 +36,7 @@ done
 echo "   OK"
 
 echo "3. Génération d'un PDF"
-CODE=$($CURL -o /tmp/facture-en-ligne.pdf -w '%{http_code}' -H 'Content-Type: application/json' --data-binary @- \
-  "$BASE/api/v1/invoices/pdf" <<'JSON'
-{
+FACTURE='{
   "invoiceNumber": "VERIF-001",
   "invoiceDate": "2026-11-27",
   "paymentTermsDays": 14,
@@ -46,11 +44,22 @@ CODE=$($CURL -o /tmp/facture-en-ligne.pdf -w '%{http_code}' -H 'Content-Type: ap
   "lines": [ { "description": "Vérification de la mise en ligne", "quantity": 1, "unit": null, "unitPrice": 1 } ],
   "notes": null,
   "issuer": { "name": "Vérification", "addressLines": [], "siret": null, "email": null, "phone": null, "iban": null }
-}
-JSON
-)
-[ "$CODE" = "000" ] && echouer "génération du PDF : pas de réponse (délai dépassé ou connexion coupée)"
+}'
+# Un essai de plus en cas d'absence de réponse : pendant la bascule d'un déploiement, l'ancienne instance
+# peut être arrêtée au milieu d'une requête. La cause (code curl, durée) est affichée à chaque échec.
+for essai in 1 2; do
+  RESULTAT=$(printf '%s' "$FACTURE" | $CURL -o /tmp/facture-en-ligne.pdf -w '%{http_code} %{time_total}' \
+    -H 'Content-Type: application/json' --data-binary @- "$BASE/api/v1/invoices/pdf")
+  SORTIE=$?
+  CODE=${RESULTAT%% *}
+  DUREE=${RESULTAT#* }
+  [ "$CODE" != "000" ] && break
+  echo "   essai $essai : pas de réponse (code curl $SORTIE, après ${DUREE} s)"
+  [ "$essai" = "1" ] && sleep 15
+done
+[ "$CODE" = "000" ] && echouer "génération du PDF : pas de réponse après 2 essais (code curl $SORTIE)"
 [ "$CODE" = "200" ] || echouer "génération du PDF : code $CODE"
+echo "   réponse en ${DUREE} s"
 [ "$(head -c 5 /tmp/facture-en-ligne.pdf)" = "%PDF-" ] || echouer "la réponse n'est pas un PDF"
 echo "   OK"
 
@@ -63,21 +72,31 @@ echo "   OK"
 
 if [ "$OPTION" = "--limite" ]; then
   echo "5. Une adresse inventée ne doit pas contourner la limite (31 demandes)"
+  # La limite est comptée par minute d'horloge : on part d'une minute neuve pour que la rafale y tienne.
+  SECONDE=$(date -u +%S | sed 's/^0//')
+  echo "   attente du début de la minute suivante ($((61 - SECONDE)) s)"
+  sleep $((61 - SECONDE))
+  # En-têtes qu'un client peut envoyer. CF-Connecting-IP n'en fait pas partie : Cloudflare refuse (403)
+  # toute requête qui le fournit, ce qui le rend fiable (c'est l'en-tête lu derrière Render).
   n=1
   DERNIER=""
   while [ "$n" -le 31 ]; do
     DERNIER=$($CURL -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' \
-      -H "X-Forwarded-For: 198.51.100.$n" -H "CF-Connecting-IP: 198.51.100.$n" -H "True-Client-IP: 198.51.100.$n" \
+      -H "X-Forwarded-For: 198.51.100.$n" -H "True-Client-IP: 198.51.100.$n" -H "X-Real-IP: 198.51.100.$n" \
       -d '{}' "$BASE/api/v1/invoices/pdf")
-    [ "$DERNIER" = "429" ] && break
+    case "$DERNIER" in
+      400) ;;
+      429) break ;;
+      *) echouer "demande $n : réponse inattendue $DERNIER (ni 400 ni 429) : test non concluant" ;;
+    esac
     n=$((n + 1))
   done
   if [ "$DERNIER" = "429" ]; then
     echo "   OK : bloqué à la demande $n malgré des adresses inventées"
   else
     echo "   ATTENTION : 31 demandes passées avec des adresses inventées."
-    echo "   Un en-tête est cru alors que le client peut l'inventer : régler INVOICE_API_CLIENT_IP_HEADER"
-    echo "   (voir le guide de mise en ligne) puis relancer cette vérification."
+    echo "   Un en-tête est cru alors que le client peut l'inventer : vérifier INVOICE_API_CLIENT_IP_HEADER"
+    echo "   (voir le cahier d'exploitation) puis relancer cette vérification."
     exit 1
   fi
 fi
