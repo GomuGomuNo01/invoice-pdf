@@ -1,6 +1,12 @@
 spring:
   application:
     name: invoice-pdf
+  web:
+    resources:
+      cache:
+        # Les dates des fichiers sont figées par la construction (1er février 1980, constructions
+        # reproductibles) : les annoncer ferait garder aux navigateurs une ancienne version de l'interface.
+        use-last-modified: false
   jackson:
     deserialization:
       fail-on-unknown-properties: true

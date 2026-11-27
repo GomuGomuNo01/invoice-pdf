@@ -48,7 +48,7 @@ public class KeepAwake {
                     .build();
             int status = client.send(request, HttpResponse.BodyHandlers.discarding()).statusCode();
             if (status == 200) {
-                LOG.debug("keep_awake_ok");
+                LOG.info("keep_awake_ok");
             } else {
                 LOG.warn("keep_awake_status status={}", status);
             }

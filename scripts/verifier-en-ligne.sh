@@ -33,6 +33,9 @@ grep -q '<div id="root">' /tmp/index-en-ligne.html || echouer "la page d'accueil
 for entete in "strict-transport-security" "content-security-policy: default-src 'self'" "x-frame-options: deny" "x-content-type-options: nosniff"; do
   echo "$ENTETES" | grep -qi "^$entete" || echouer "en-tête manquant : $entete"
 done
+# Un navigateur qui a gardé une ancienne page doit recevoir la nouvelle (pas de 304 sur une date figée).
+CODE=$($CURL -o /dev/null -w '%{http_code}' -H 'If-Modified-Since: Fri, 01 Feb 1980 00:00:00 GMT' "$BASE/")
+[ "$CODE" = "200" ] || echouer "page d'accueil : code $CODE pour un navigateur ayant une ancienne copie (attendu 200)"
 echo "   OK"
 
 echo "3. Génération d'un PDF"
