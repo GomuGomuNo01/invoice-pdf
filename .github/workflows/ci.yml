@@ -105,3 +105,5 @@ jobs:
       - uses: actions/checkout@v7
       - name: Construction et essai des images
         run: sh scripts/tester-images.sh
+      - name: Essai de la pile de production (Caddy, HTTPS, accès restreint)
+        run: sh scripts/tester-prod.sh

@@ -56,6 +56,19 @@ docker compose up --build
 
 Puis ouvrir http://localhost:8081.
 
+## Mise en production
+
+La pile de production est dans `deploy/` : Caddy (HTTPS automatique, accès restreint par identifiant et mot de passe, santé publique sur `/sante`) devant nginx et le backend en profil `prod`.
+
+1. Publier les images : poser une étiquette de version sur `main` (ex. `git tag v1.0.0 && git push origin v1.0.0`). Le workflow « Publication » envoie `invoice-pdf-backend` et `invoice-pdf-frontend` sur ghcr.io, avec SBOM et attestation de provenance.
+2. Sur le serveur, dans `deploy/` : copier `.env.prod.example` en `.env.prod`, renseigner le domaine, les images, l'accès et les mentions légales du site.
+3. Démarrer :
+   ```
+   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+   ```
+
+`scripts/tester-prod.sh` démarre cette pile sur `localhost` et la vérifie (HTTPS, accès restreint, PDF, profil de production, adresse réelle) ; la CI l'exécute à chaque changement.
+
 ## API
 
 `POST /api/v1/invoices/pdf` (JSON) renvoie `application/pdf` en pièce jointe `Facture-<numéro>.pdf`.

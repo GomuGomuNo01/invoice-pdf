@@ -21,6 +21,7 @@ import com.invoicepdf.domain.ComputedInvoice;
 import com.invoicepdf.domain.InvoiceCalculator;
 import com.invoicepdf.domain.IssuerInfo;
 import com.invoicepdf.pdf.InvoicePdfRenderer;
+import com.invoicepdf.pdf.RenderLimiter;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -35,11 +36,14 @@ public class InvoiceController {
     private final InvoiceCalculator calculator;
     private final InvoicePdfRenderer renderer;
     private final IssuerProperties defaultIssuer;
+    private final RenderLimiter renderLimiter;
 
-    public InvoiceController(InvoiceCalculator calculator, InvoicePdfRenderer renderer, IssuerProperties defaultIssuer) {
+    public InvoiceController(InvoiceCalculator calculator, InvoicePdfRenderer renderer, IssuerProperties defaultIssuer,
+            RenderLimiter renderLimiter) {
         this.calculator = calculator;
         this.renderer = renderer;
         this.defaultIssuer = defaultIssuer;
+        this.renderLimiter = renderLimiter;
     }
 
     @Operation(summary = "Génère le PDF d'une facture",
@@ -50,13 +54,14 @@ public class InvoiceController {
             content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE))
     @ApiResponse(responseCode = "413", description = "Requête trop volumineuse")
     @ApiResponse(responseCode = "429", description = "Trop de requêtes")
+    @ApiResponse(responseCode = "503", description = "Trop de rendus en cours, réessayer")
     @PostMapping(path = "/pdf", consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = {MediaType.APPLICATION_PDF_VALUE, MediaType.APPLICATION_PROBLEM_JSON_VALUE})
     public ResponseEntity<byte[]> generatePdf(@Valid @RequestBody InvoiceRequest request) {
         long start = System.nanoTime();
         ComputedInvoice invoice = calculator.compute(request);
         IssuerInfo issuer = request.issuer() != null ? IssuerInfo.from(request.issuer()) : IssuerInfo.from(defaultIssuer);
-        byte[] pdf = renderer.renderPdf(invoice, issuer);
+        byte[] pdf = renderLimiter.run(() -> renderer.renderPdf(invoice, issuer));
 
         // Journal technique uniquement : aucune donnée de la facture (données personnelles).
         LOG.info("pdf_generated id={} lines={} bytes={} durationMs={}",

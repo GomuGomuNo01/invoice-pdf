@@ -8,6 +8,7 @@ AUDIT*.md
 .env
 .env.*
 !.env.example
+!.env.prod.example
 
 # Backend
 backend/target/

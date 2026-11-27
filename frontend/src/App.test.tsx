@@ -17,13 +17,24 @@ function jsonResponse(body: unknown, status = 200, contentType = 'application/js
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': contentType } });
 }
 
+const site = {
+  editorName: 'Atelier Éditeur',
+  editorAddress: null,
+  editorEmail: 'contact@atelier.example',
+  publicationDirector: null,
+  hostName: 'Hébergeur Exemple',
+  hostAddress: null,
+  hostContact: null,
+};
+
 let fetchMock: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   window.localStorage.clear();
-  fetchMock =vi.fn(async (input: RequestInfo | URL) => {
+  fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.endsWith('/api/v1/issuer')) return jsonResponse(issuer);
+    if (url.endsWith('/api/v1/site')) return jsonResponse(site);
     return new Response(new Blob(['%PDF-1.7'], { type: 'application/pdf' }), {
       status: 200,
       headers: { 'Content-Type': 'application/pdf' },
@@ -233,5 +244,57 @@ describe('parcours de saisie', () => {
     expect(alert).toHaveTextContent('Il reste 1 point à compléter');
     await user.type(screen.getByLabelText(/Nom du client/), 'Client');
     expect(alert).toHaveTextContent('Tout est complet');
+  });
+
+  it('affiche les mentions légales et se ferme au clavier', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const lien = screen.getByRole('button', { name: 'Mentions légales' });
+    await user.click(lien);
+
+    const fenetre = screen.getByRole('dialog', { name: 'Mentions légales' });
+    // Éditeur, et directeur de la publication par défaut.
+    expect(await within(fenetre).findAllByText('Atelier Éditeur')).toHaveLength(2);
+    expect(within(fenetre).getByText('Hébergeur Exemple')).toBeInTheDocument();
+    expect(within(fenetre).getAllByText('À compléter').length).toBeGreaterThan(0);
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(lien).toHaveFocus();
+  });
+
+  it('garde le focus dans la fenêtre légale, y compris avec Maj+Tab depuis le titre', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Confidentialité' }));
+    const fenetre = screen.getByRole('dialog', { name: 'Confidentialité' });
+    expect(within(fenetre).getByRole('heading', { name: 'Confidentialité' })).toHaveFocus();
+
+    // Depuis le titre, Maj+Tab va au dernier bouton de la fenêtre, pas derrière elle.
+    await user.tab({ shift: true });
+    expect(fenetre).toContainElement(document.activeElement as HTMLElement);
+    expect(document.activeElement).toBe(within(fenetre).getByRole('button', { name: 'Effacer mes coordonnées mémorisées' }));
+
+    // Tab depuis le dernier bouton revient au premier (Fermer).
+    await user.tab();
+    expect(within(fenetre).getByRole('button', { name: 'Fermer' })).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(fenetre).toContainElement(document.activeElement as HTMLElement);
+  });
+
+  it('efface les coordonnées mémorisées depuis la page de confidentialité', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const nom = await screen.findByDisplayValue('Atelier Exemple');
+    await user.type(nom, ' et fils');
+    expect(window.localStorage.length).toBe(1);
+
+    await user.click(screen.getByRole('button', { name: 'Confidentialité' }));
+    const fenetre = screen.getByRole('dialog', { name: 'Confidentialité' });
+    await user.click(within(fenetre).getByRole('button', { name: 'Effacer mes coordonnées mémorisées' }));
+
+    expect(within(fenetre).getByRole('button', { name: 'Coordonnées effacées' })).toBeDisabled();
+    expect(screen.getByLabelText(/Votre nom ou votre entreprise/)).toHaveValue('');
+    expect(window.localStorage.length).toBe(0);
   });
 });

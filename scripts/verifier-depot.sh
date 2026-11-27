@@ -17,7 +17,7 @@ fi
 [ -z "$FICHIERS" ] && exit 0
 
 # 1. Fichiers interdits (documentation interne, secrets)
-INTERDITS=$(printf '%s\n' "$FICHIERS" | grep -E '(^|/)docs-local/|(^|/)PLAN_DE_TRAVAIL[^/]*\.md$|(^|/)AUDIT[^/]*\.md$|\.notes\.md$|(^|/)\.env($|\.)' | grep -vE '(^|/)\.env\.example$' || true)
+INTERDITS=$(printf '%s\n' "$FICHIERS" | grep -E '(^|/)docs-local/|(^|/)PLAN_DE_TRAVAIL[^/]*\.md$|(^|/)AUDIT[^/]*\.md$|\.notes\.md$|(^|/)\.env($|\.)' | grep -vE '(^|/)\.env(\.prod)?\.example$' || true)
 if [ -n "$INTERDITS" ]; then
   echo "ERREUR : fichiers interdits dans le dépôt :"
   printf '  %s\n' $INTERDITS

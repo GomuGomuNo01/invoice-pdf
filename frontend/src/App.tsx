@@ -3,6 +3,7 @@ import { ApiError, downloadBlob, fetchIssuer, generatePdf } from './api/client';
 import { InputField, TextAreaField } from './components/Field';
 import { Icon } from './components/Icon';
 import { InvoicePreview } from './components/InvoicePreview';
+import { LegalDialog, type LegalPage } from './components/LegalDialog';
 import { LinesEditor } from './components/LinesEditor';
 import {
   EMPTY_ISSUER,
@@ -19,7 +20,7 @@ import {
   type IssuerDraft,
   type LineDraft,
 } from './domain/invoice';
-import { loadIssuer, saveIssuer } from './domain/issuerStorage';
+import { clearIssuer, loadIssuer, saveIssuer } from './domain/issuerStorage';
 import { formatDate, formatMoney, pdfFileName, todayIso } from './domain/format';
 
 type Status =
@@ -81,6 +82,7 @@ export default function App() {
   const [serverErrors, setServerErrors] = useState<FieldErrors>({});
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const [view, setView] = useState<View>('form');
+  const [legalPage, setLegalPage] = useState<LegalPage | null>(null);
   const edited = useRef(new Set<string>());
   const summaryRef = useRef<HTMLDivElement>(null);
   const previewTitleRef = useRef<HTMLHeadingElement>(null);
@@ -118,7 +120,10 @@ export default function App() {
       firstSave.current = false;
       return;
     }
-    saveIssuer(JSON.parse(issuerSnapshot) as IssuerDraft);
+    const issuer = JSON.parse(issuerSnapshot) as IssuerDraft;
+    // Un émetteur entièrement vide (après effacement) n'est pas mémorisé.
+    if (Object.values(issuer).every((value) => value.trim() === '')) clearIssuer();
+    else saveIssuer(issuer);
   }, [issuerSnapshot]);
 
   const totals = useMemo(() => computeTotals(draft), [draft]);
@@ -515,6 +520,15 @@ export default function App() {
             </fieldset>
           </form>
 
+          <footer className="site-footer">
+            <button type="button" className="link-button" onClick={() => setLegalPage('mentions')}>
+              Mentions légales
+            </button>
+            <button type="button" className="link-button" onClick={() => setLegalPage('confidentialite')}>
+              Confidentialité
+            </button>
+          </footer>
+
           <div className="bar">
             <div className="bar__inner">
               <div className="bar__total">
@@ -576,6 +590,17 @@ export default function App() {
           </div>
         </section>
       </main>
+
+      {legalPage ? (
+        <LegalDialog
+          page={legalPage}
+          onClose={() => setLegalPage(null)}
+          onClearIssuer={() => {
+            clearIssuer();
+            setDraft((current) => ({ ...current, ...EMPTY_ISSUER }));
+          }}
+        />
+      ) : null}
     </>
   );
 }
