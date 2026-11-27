@@ -1,0 +1,33 @@
+# Profil de production : activé par SPRING_PROFILES_ACTIVE=prod (docker-compose.prod.yml).
+# Complète application.yml ; seules les différences avec le développement figurent ici.
+
+server:
+  # Les requêtes en cours se terminent avant l'arrêt du conteneur (mise à jour sans coupure brutale).
+  shutdown: graceful
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+# Aucune documentation d'API exposée en production.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    root: WARN
+    # Journal technique de génération (identifiant, nombre de lignes, durée), jamais le contenu des factures.
+    com.invoicepdf: INFO
+    # Messages de rendu très bavards de la bibliothèque PDF.
+    com.openhtmltopdf: WARN
+    org.apache.fontbox: ERROR
+    org.apache.pdfbox: WARN

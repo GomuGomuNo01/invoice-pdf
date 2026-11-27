@@ -28,3 +28,10 @@ updates:
     target-branch: dev
     schedule:
       interval: monthly
+    # Les images suivent les versions utilisées et testées en CI (Java 21, Node 24).
+    # Un changement de version majeure se décide et se teste à part, pas par Dependabot.
+    ignore:
+      - dependency-name: eclipse-temurin
+        update-types: ["version-update:semver-major"]
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
