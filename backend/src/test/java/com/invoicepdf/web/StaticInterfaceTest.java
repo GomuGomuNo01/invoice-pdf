@@ -40,6 +40,19 @@ class StaticInterfaceTest {
     }
 
     @Test
+    void uneNouvelleVersionEstToujoursServieAuxNavigateursQuiOntLAncienne() throws Exception {
+        // Les dates de fichiers sont figées par la construction (1er février 1980) : un navigateur qui
+        // demandait « modifié depuis 1980 ? » recevait 304 et gardait l'ancienne page indéfiniment.
+        String dateFigee = "Fri, 01 Feb 1980 00:00:00 GMT";
+        for (String chemin : new String[] {"/index.html", "/theme-init.js"}) {
+            mvc.perform(get(chemin).header("If-Modified-Since", dateFigee))
+                    .andExpect(status().isOk())
+                    .andExpect(header().doesNotExist("Last-Modified"))
+                    .andExpect(header().string("Cache-Control", "no-cache"));
+        }
+    }
+
+    @Test
     void fichiersVersionnesGardesUnAn() throws Exception {
         mvc.perform(get("/assets/index-essai.js"))
                 .andExpect(status().isOk())

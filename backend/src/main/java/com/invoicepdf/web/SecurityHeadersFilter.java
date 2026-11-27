@@ -48,8 +48,10 @@ public class SecurityHeadersFilter extends OncePerRequestFilter {
             response.setHeader("Content-Security-Policy", CSP_API);
         } else {
             response.setHeader("Content-Security-Policy", CSP_INTERFACE);
-            // La page d'entrée est toujours revalidée : elle désigne les fichiers versionnés de /assets/.
-            if (uri.equals("/") || uri.equals("/index.html")) {
+            // La page d'entrée (qui désigne les fichiers versionnés de /assets/) et le script de thème
+            // sont redemandés à chaque visite : sans date de modification (voir application.yml),
+            // le navigateur ne peut pas garder une ancienne version.
+            if (uri.equals("/") || uri.equals("/index.html") || uri.equals("/theme-init.js")) {
                 response.setHeader("Cache-Control", "no-cache");
             }
         }
