@@ -263,6 +263,25 @@ describe('parcours de saisie', () => {
     expect(lien).toHaveFocus();
   });
 
+  it('garde le focus dans la fenêtre légale, y compris avec Maj+Tab depuis le titre', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Confidentialité' }));
+    const fenetre = screen.getByRole('dialog', { name: 'Confidentialité' });
+    expect(within(fenetre).getByRole('heading', { name: 'Confidentialité' })).toHaveFocus();
+
+    // Depuis le titre, Maj+Tab va au dernier bouton de la fenêtre, pas derrière elle.
+    await user.tab({ shift: true });
+    expect(fenetre).toContainElement(document.activeElement as HTMLElement);
+    expect(document.activeElement).toBe(within(fenetre).getByRole('button', { name: 'Effacer mes coordonnées mémorisées' }));
+
+    // Tab depuis le dernier bouton revient au premier (Fermer).
+    await user.tab();
+    expect(within(fenetre).getByRole('button', { name: 'Fermer' })).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(fenetre).toContainElement(document.activeElement as HTMLElement);
+  });
+
   it('efface les coordonnées mémorisées depuis la page de confidentialité', async () => {
     const user = userEvent.setup();
     render(<App />);

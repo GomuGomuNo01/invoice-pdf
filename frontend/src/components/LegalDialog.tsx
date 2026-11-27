@@ -48,14 +48,21 @@ export function LegalDialog({ page, onClose, onClearIssuer }: Props) {
       if (event.key === 'Escape') onClose();
       // Le focus reste dans la fenêtre (Tab et Maj+Tab bouclent).
       if (event.key === 'Tab' && dialogRef.current) {
-        const focusables = dialogRef.current.querySelectorAll<HTMLElement>('button, a[href], [tabindex="0"]');
+        const focusables = Array.from(
+          dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], [tabindex="0"]'),
+        );
         const first = focusables[0];
         const last = focusables[focusables.length - 1];
         if (!first || !last) return;
-        if (event.shiftKey && document.activeElement === first) {
+        const active = document.activeElement as HTMLElement | null;
+        // Focus hors de la boucle (titre à l'ouverture, ou ailleurs) : on y revient dans le bon sens.
+        if (!active || !focusables.includes(active)) {
+          event.preventDefault();
+          (event.shiftKey ? last : first).focus();
+        } else if (event.shiftKey && active === first) {
           event.preventDefault();
           last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
+        } else if (!event.shiftKey && active === last) {
           event.preventDefault();
           first.focus();
         }
