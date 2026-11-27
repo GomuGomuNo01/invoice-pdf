@@ -1,0 +1,60 @@
+name: Vérification après déploiement
+
+# Render redéploie chaque commit de main. Ce workflow attend que ce commit précis soit en ligne,
+# puis vérifie le site (santé, HTTPS, en-têtes, génération d'un PDF, profil de production).
+# En cas d'échec, GitHub prévient par e-mail. Inactif tant que la variable de dépôt SITE_URL est vide
+# (Settings > Secrets and variables > Actions > Variables, ou : gh variable set SITE_URL).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verification-deploiement
+  cancel-in-progress: true
+
+jobs:
+  verification:
+    name: Site en ligne à jour et fonctionnel
+    if: vars.SITE_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SITE_URL: ${{ vars.SITE_URL }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Attente de la mise en ligne de ce commit
+        run: |
+          fin=$(( $(date +%s) + 1800 ))
+          while :; do
+            # Le premier appel peut réveiller le service (jusqu'à une minute sur l'offre gratuite).
+            commit=$(curl -s --max-time 90 "$SITE_URL/api/v1/version" \
+              | python3 -c 'import json,sys; print(json.load(sys.stdin).get("commit",""))' 2>/dev/null || true)
+            if [ "$commit" = "$GITHUB_SHA" ]; then
+              echo "Commit $GITHUB_SHA en ligne."
+              break
+            fi
+            if [ "$(date +%s)" -gt "$fin" ]; then
+              echo "Le commit $GITHUB_SHA n'est pas en ligne après 30 minutes (en ligne : ${commit:-inconnu})."
+              echo "Vérifier le déploiement dans le tableau de bord Render."
+              exit 1
+            fi
+            sleep 30
+          done
+
+      - name: Vérification du site
+        run: sh scripts/verifier-en-ligne.sh "$SITE_URL"
+
+      - name: Résumé
+        if: always()
+        run: |
+          {
+            echo "### Déploiement de ${GITHUB_SHA::7}"
+            echo "Site : $SITE_URL"
+            curl -s --max-time 60 "$SITE_URL/api/v1/version" || echo "version indisponible"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -18,7 +18,7 @@ echouer() {
 echo "1. Santé (le premier appel peut réveiller le service : jusqu'à une minute)"
 CODE=$($CURL -o /dev/null -w '%{http_code}' "$BASE/actuator/health")
 [ "$CODE" = "200" ] || echouer "santé : code $CODE"
-echo "   OK"
+echo "   OK, version en ligne : $($CURL "$BASE/api/v1/version")"
 
 echo "2. HTTPS et en-têtes de sécurité"
 case "$BASE" in https://*) ;; *) echouer "l'adresse doit commencer par https://" ;; esac

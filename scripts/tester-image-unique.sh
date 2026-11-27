@@ -32,7 +32,7 @@ docker image inspect "$IMAGE" --format '   taille : {{.Size}} octets'
 echo "2. Démarrage avec 512 Mo, port 10000, système de fichiers en lecture seule"
 DEBUT=$(date +%s)
 docker run -d --name "$NOM" --memory 512m --read-only --tmpfs /tmp \
-  -e PORT=10000 -e INVOICE_API_MAX_CONCURRENT_RENDERS=2 -e INVOICE_SITE_EDITOR_NAME="Éditeur Essai" \
+  -e PORT=10000 -e RENDER_GIT_COMMIT=essai0123456789 -e INVOICE_API_MAX_CONCURRENT_RENDERS=2 -e INVOICE_SITE_EDITOR_NAME="Éditeur Essai" \
   -p 127.0.0.1:10000:10000 "$IMAGE" >/dev/null
 i=0
 until [ "$($CURL --max-time 5 -o /dev/null -w '%{http_code}' "$BASE/actuator/health")" = "200" ]; do
@@ -79,6 +79,7 @@ for chemin in /api/docs /api/v1/openapi.json /actuator/env; do
   [ "$CODE" = "404" ] || echouer "$chemin accessible (code $CODE)"
 done
 $CURL "$BASE/api/v1/site" | grep -q '"editorName":"Éditeur Essai"' || echouer "mentions légales non lues"
+$CURL "$BASE/api/v1/version" | grep -q '"commit":"essai0123456789"' || echouer "commit de l'hébergeur non exposé par /api/v1/version"
 echo "   OK"
 
 echo "6. Tenue en mémoire : 10 PDF de 100 lignes"
