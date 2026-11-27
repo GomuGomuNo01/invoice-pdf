@@ -19,9 +19,10 @@ services:
         value: "2"
       - key: INVOICE_RATE_LIMIT_PER_MINUTE
         value: "30"
-      # Adresse réelle du client : Render passe par Cloudflare, qui écrase toujours CF-Connecting-IP
-      # avec l'adresse du visiteur. Sans ce réglage, une adresse X-Forwarded-For inventée était crue
-      # (constaté le 27/11/2026 avec scripts/verifier-en-ligne.sh --limite).
+      # Adresse réelle du client : Render passe par Cloudflare, qui refuse (403) toute requête fournissant
+      # elle-même CF-Connecting-IP ; cet en-tête porte donc toujours l'adresse vraie du visiteur.
+      # Vérifié en ligne le 27/11/2026 : X-Forwarded-For, True-Client-IP ou X-Real-IP inventés ne
+      # contournent pas la limite (scripts/verifier-en-ligne.sh --limite).
       - key: INVOICE_API_CLIENT_IP_HEADER
         value: CF-Connecting-IP
       # Mentions légales du site, à saisir dans le tableau de bord (non versionnées).
