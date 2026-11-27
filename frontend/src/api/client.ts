@@ -28,6 +28,23 @@ export class ApiError extends Error {
 
 const API = '/api/v1';
 
+/** Informations légales du site (null si non configurées). */
+export interface SiteInfo {
+  editorName: string | null;
+  editorAddress: string | null;
+  editorEmail: string | null;
+  publicationDirector: string | null;
+  hostName: string | null;
+  hostAddress: string | null;
+  hostContact: string | null;
+}
+
+export async function fetchSite(signal?: AbortSignal): Promise<SiteInfo> {
+  const response = await fetch(`${API}/site`, { signal, headers: { Accept: 'application/json' } });
+  if (!response.ok) throw new ApiError(response.status, 'Impossible de charger les mentions légales.');
+  return (await response.json()) as SiteInfo;
+}
+
 export async function fetchIssuer(signal?: AbortSignal): Promise<Issuer> {
   const response = await fetch(`${API}/issuer`, { signal, headers: { Accept: 'application/json' } });
   if (!response.ok) throw new ApiError(response.status, "Impossible de charger l'émetteur.");
