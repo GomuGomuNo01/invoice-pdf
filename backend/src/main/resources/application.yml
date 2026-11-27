@@ -44,6 +44,9 @@ invoice:
     host-name: "${INVOICE_SITE_HOST_NAME:}"
     host-address: "${INVOICE_SITE_HOST_ADDRESS:}"
     host-contact: "${INVOICE_SITE_HOST_CONTACT:}"
+  # Commit déployé, fourni par l'hébergeur (Render : RENDER_GIT_COMMIT) ou par GIT_COMMIT.
+  build:
+    commit: "${RENDER_GIT_COMMIT:${GIT_COMMIT:}}"
   api:
     cors-allowed-origins: "${INVOICE_CORS_ALLOWED_ORIGINS:http://localhost:5173}"
     max-request-bytes: 262144

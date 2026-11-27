@@ -64,6 +64,8 @@ Un seul conteneur, construit par le `Dockerfile` à la racine : l'application Sp
 
 - Essai local de l'image, dans les conditions de l'offre gratuite : `sh scripts/tester-image-unique.sh` (exécuté par la CI).
 - Vérification après un déploiement : `sh scripts/verifier-en-ligne.sh https://adresse-du-site [--limite]`.
+- Version et commit en service : `GET /api/v1/version`.
+- Après chaque fusion dans `main`, le workflow « Vérification après déploiement » attend que ce commit soit en ligne puis vérifie le site (actif dès que la variable de dépôt `SITE_URL` est renseignée).
 
 ### Auto-hébergement (serveur avec Caddy)
 

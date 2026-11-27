@@ -28,6 +28,9 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: jsdom
         update-types: ["version-update:semver-major"]
+      # TypeScript 7 : pas encore supporté par typescript-eslint.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     target-branch: dev
