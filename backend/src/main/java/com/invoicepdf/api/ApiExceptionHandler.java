@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import com.invoicepdf.pdf.RenderLimiter;
 import com.invoicepdf.web.PayloadTooLargeException;
 
 /**
@@ -59,6 +60,14 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(PayloadTooLargeException.class)
     public ResponseEntity<Object> handlePayloadTooLarge(PayloadTooLargeException ex) {
         return payloadTooLarge();
+    }
+
+    @ExceptionHandler(RenderLimiter.ServerBusyException.class)
+    public ResponseEntity<Object> handleServerBusy(RenderLimiter.ServerBusyException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
+                "Le service est très sollicité. Réessayer dans quelques secondes.");
+        problem.setTitle("Service occupé");
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).header(HttpHeaders.RETRY_AFTER, "5").body(problem);
     }
 
     @ExceptionHandler(Exception.class)

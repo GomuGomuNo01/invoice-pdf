@@ -60,6 +60,7 @@ interface Problem {
 function messageForStatus(status: number, problem: Problem | null): string {
   if (status === 429) return 'Trop de générations en peu de temps. Réessayer dans une minute.';
   if (status === 413) return 'La facture est trop volumineuse.';
+  if (status === 503) return 'Le service est très sollicité. Réessayez dans quelques secondes.';
   if (status >= 500) return 'Le serveur a rencontré une erreur. Réessayer plus tard.';
   return problem?.detail ?? 'La facture contient des erreurs.';
 }
