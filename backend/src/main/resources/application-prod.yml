@@ -31,3 +31,6 @@ logging:
     com.openhtmltopdf: WARN
     org.apache.fontbox: ERROR
     org.apache.pdfbox: WARN
+    # Polices standard absentes de l'image JRE : PDFBox prévient qu'il prend une police de secours.
+    # Sans effet sur les factures (polices Carlito embarquées).
+    org.apache.pdfbox.pdmodel.font: ERROR

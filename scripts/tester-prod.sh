@@ -111,11 +111,11 @@ $CURL -u "$UTILISATEUR:$MOT_DE_PASSE" "$BASE/api/v1/site" | grep -q '"editorName
 echo "   OK"
 
 echo "9. Une adresse X-Forwarded-For inventée par le client ne contourne pas la limite"
+# Toutes les demandes de ce script viennent de la même adresse réelle, et la génération de l'étape 7
+# compte déjà dans la minute en cours : on part toujours d'une minute neuve (limite comptée par minute d'horloge).
 SECONDE=$(date -u +%S | sed 's/^0//')
-if [ "$SECONDE" -gt 30 ]; then
-  echo "   attente du début de la minute suivante ($((61 - SECONDE)) s)"
-  sleep $((61 - SECONDE))
-fi
+echo "   attente du début de la minute suivante ($((61 - SECONDE)) s)"
+sleep $((61 - SECONDE))
 n=1
 while [ "$n" -le 30 ]; do
   CODE=$($CURL -o /dev/null -w '%{http_code}' -u "$UTILISATEUR:$MOT_DE_PASSE" -H 'Content-Type: application/json' \
