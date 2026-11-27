@@ -25,6 +25,10 @@ services:
       # contournent pas la limite (scripts/verifier-en-ligne.sh --limite).
       - key: INVOICE_API_CLIENT_IP_HEADER
         value: CF-Connecting-IP
+      # Anti-veille : l'application appelle sa santé publique toutes les 10 minutes (l'offre gratuite
+      # s'endort après 15 minutes sans visite). La surveillance GitHub réveille le service s'il dort quand même.
+      - key: INVOICE_KEEP_AWAKE_URL
+        value: https://invoice-pdf-hxrd.onrender.com/actuator/health
       # Mentions légales du site, à saisir dans le tableau de bord (non versionnées).
       - key: INVOICE_SITE_EDITOR_NAME
         sync: false
