@@ -74,6 +74,31 @@ CODE=$($CURL -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' 
 [ "$CODE" = "400" ] || echouer "requête invalide : code $CODE au lieu de 400"
 echo "   OK"
 
+echo "6 bis. Limitation de débit par adresse réelle du client (à travers nginx)"
+# La limite par défaut est de 30 générations par minute et par adresse.
+demande() {
+  $CURL -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -H "X-Forwarded-For: $1" \
+    -d '{}' "$BASE/api/v1/invoices/pdf"
+}
+# La limite est comptée par minute d'horloge (conteneurs et hôte partagent la même horloge) :
+# la rafale doit tenir dans une seule minute, sinon la 31e demande tomberait dans la suivante.
+SECONDE=$(date -u +%S | sed 's/^0//')
+if [ "$SECONDE" -gt 30 ]; then
+  echo "   attente du début de la minute suivante ($((61 - SECONDE)) s)"
+  sleep $((61 - SECONDE))
+fi
+n=1
+while [ "$n" -le 30 ]; do
+  CODE=$(demande 203.0.113.10)
+  [ "$CODE" = "400" ] || echouer "client A, demande $n : code $CODE au lieu de 400"
+  n=$((n + 1))
+done
+CODE=$(demande 203.0.113.10)
+[ "$CODE" = "429" ] || echouer "client A, demande 31 : code $CODE au lieu de 429"
+CODE=$(demande 198.51.100.20)
+[ "$CODE" = "400" ] || echouer "client B bloqué par la limite du client A (code $CODE) : adresses confondues"
+echo "   OK : chaque client a sa propre limite"
+
 echo "7. Conteneurs non root"
 for service in backend frontend; do
   UID_SERVICE=$(docker compose exec -T "$service" id -u)
