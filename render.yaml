@@ -19,9 +19,11 @@ services:
         value: "2"
       - key: INVOICE_RATE_LIMIT_PER_MINUTE
         value: "30"
-      # À ne renseigner qu'après vérification (scripts/verifier-en-ligne.sh) : en-tête d'adresse réelle.
+      # Adresse réelle du client : Render passe par Cloudflare, qui écrase toujours CF-Connecting-IP
+      # avec l'adresse du visiteur. Sans ce réglage, une adresse X-Forwarded-For inventée était crue
+      # (constaté le 27/11/2026 avec scripts/verifier-en-ligne.sh --limite).
       - key: INVOICE_API_CLIENT_IP_HEADER
-        sync: false
+        value: CF-Connecting-IP
       # Mentions légales du site, à saisir dans le tableau de bord (non versionnées).
       - key: INVOICE_SITE_EDITOR_NAME
         sync: false

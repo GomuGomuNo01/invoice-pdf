@@ -1,0 +1,63 @@
+name: Surveillance du site
+
+# Supervision gratuite, sans service externe :
+# - toutes les 10 minutes, appel de la santé du site : le garde éveillé (l'offre gratuite de Render
+#   s'endort après 15 minutes sans visite) et signale une panne (GitHub envoie un e-mail en cas d'échec) ;
+# - chaque lundi à 6 h (UTC), vérification complète (HTTPS, en-têtes, génération d'un PDF, profil de production).
+# Inactif tant que la variable de dépôt SITE_URL est vide.
+# Remarques : GitHub peut retarder les exécutions programmées de quelques minutes, et les désactive
+# après 60 jours sans activité sur le dépôt (les réactiver depuis l'onglet Actions).
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      complete:
+        description: 'Lancer aussi la vérification complète'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: surveillance
+  cancel-in-progress: false
+
+jobs:
+  sante:
+    name: Santé du site
+    if: vars.SITE_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SITE_URL: ${{ vars.SITE_URL }}
+    steps:
+      - name: Appel de la santé (3 essais, réveil compris)
+        run: |
+          for essai in 1 2 3; do
+            debut=$(date +%s)
+            code=$(curl -s -o /tmp/sante.json -w '%{http_code}' --max-time 90 "$SITE_URL/actuator/health" || echo 000)
+            duree=$(( $(date +%s) - debut ))
+            if [ "$code" = "200" ] && grep -q '"status":"UP"' /tmp/sante.json; then
+              echo "Site en ligne (réponse en ${duree} s, essai $essai)."
+              echo "Site en ligne, réponse en ${duree} s." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Essai $essai : code $code après ${duree} s."
+            sleep 20
+          done
+          echo "Le site ne répond pas : $SITE_URL" | tee -a "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+  verification:
+    name: Vérification complète hebdomadaire
+    needs: sante
+    if: vars.SITE_URL != '' && (github.event.schedule == '0 6 * * 1' || inputs.complete)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - run: sh scripts/verifier-en-ligne.sh "${{ vars.SITE_URL }}"
