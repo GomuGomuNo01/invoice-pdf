@@ -12,6 +12,11 @@ spring:
 
 server:
   port: ${PORT:8080}
+  # Derrière nginx (et Caddy en production), l'adresse du client vient de X-Forwarded-For.
+  # Tomcat ne lit cet en-tête que si la requête arrive d'un proxy interne (adresses privées et
+  # boucle locale, valeur par défaut de server.tomcat.remoteip.internal-proxies) : un client
+  # externe ne peut donc pas usurper une adresse pour contourner la limitation de débit.
+  forward-headers-strategy: native
   error:
     include-message: never
     include-stacktrace: never
