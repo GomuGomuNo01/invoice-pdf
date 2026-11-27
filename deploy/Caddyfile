@@ -1,0 +1,40 @@
+# Frontal de production : HTTPS automatique, en-têtes de transport, accès restreint, santé publique.
+# Variables lues dans l'environnement du conteneur (voir deploy/.env.prod.example) :
+#   SITE_DOMAIN      nom de domaine public (ex. factures.exemple.fr), ou "localhost" pour un essai local
+#   ACCES            "restreint" (défaut, identifiant et mot de passe) ou "public"
+#   BASIC_AUTH_USER  identifiant (si ACCES=restreint)
+#   BASIC_AUTH_HASH  empreinte bcrypt du mot de passe (caddy hash-password)
+
+{
+	# Caddy est le point d'entrée : il ne fait confiance à aucun X-Forwarded-For entrant
+	# et transmet l'adresse réelle du client à nginx.
+	servers {
+		protocols h1 h2 h3
+	}
+}
+
+{$SITE_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+		-Via
+	}
+
+	# Santé pour la surveillance externe : réponse minimale, sans authentification.
+	handle /sante {
+		rewrite * /actuator/health
+		reverse_proxy backend:8080
+	}
+
+	handle {
+		import acces/{$ACCES:restreint}.caddy
+		reverse_proxy frontend:8080
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

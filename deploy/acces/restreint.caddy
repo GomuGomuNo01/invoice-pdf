@@ -1,0 +1,4 @@
+# Accès réservé : identifiant et mot de passe demandés par le navigateur (HTTPS obligatoire).
+basic_auth {
+	{$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+}
