@@ -20,6 +20,17 @@ class ClientIpRateLimitTest {
 
     private static final HttpClient HTTP = HttpClient.newHttpClient();
 
+    /**
+     * La limite est comptée par minute d'horloge : chaque rafale doit tenir dans une seule minute.
+     * Si la minute courante se termine bientôt, on attend le début de la suivante.
+     */
+    static void attendreDebutDeMinute() throws InterruptedException {
+        long millisDansLaMinute = System.currentTimeMillis() % 60_000;
+        if (millisDansLaMinute > 45_000) {
+            Thread.sleep(60_000 - millisDansLaMinute + 200);
+        }
+    }
+
     /** Requête invalide (refusée en 400 après le filtre) : rapide, mais comptée par la limitation. */
     static int post(int port, String forwardedFor) throws Exception {
         HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/v1/invoices/pdf"))
@@ -41,6 +52,7 @@ class ClientIpRateLimitTest {
 
         @Test
         void chaqueClientAUneLimiteDistincte() throws Exception {
+            attendreDebutDeMinute();
             // 127.0.0.1 est un proxy interne : l'adresse transmise est celle du client.
             assertThat(post(port, "203.0.113.10")).isEqualTo(400);
             assertThat(post(port, "203.0.113.10")).isEqualTo(400);
@@ -64,6 +76,7 @@ class ClientIpRateLimitTest {
 
         @Test
         void lEnTeteEstIgnoreEtNePermetPasDeContournerLaLimite() throws Exception {
+            attendreDebutDeMinute();
             assertThat(post(port, "203.0.113.10")).isEqualTo(400);
             assertThat(post(port, "198.51.100.20")).isEqualTo(400);
             // Changer d'adresse annoncée ne réinitialise pas la limite : c'est la vraie source qui compte.

@@ -80,6 +80,13 @@ demande() {
   $CURL -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -H "X-Forwarded-For: $1" \
     -d '{}' "$BASE/api/v1/invoices/pdf"
 }
+# La limite est comptée par minute d'horloge (conteneurs et hôte partagent la même horloge) :
+# la rafale doit tenir dans une seule minute, sinon la 31e demande tomberait dans la suivante.
+SECONDE=$(date -u +%S | sed 's/^0//')
+if [ "$SECONDE" -gt 30 ]; then
+  echo "   attente du début de la minute suivante ($((61 - SECONDE)) s)"
+  sleep $((61 - SECONDE))
+fi
 n=1
 while [ "$n" -le 30 ]; do
   CODE=$(demande 203.0.113.10)
