@@ -25,10 +25,46 @@ class RateLimitFilterTest {
         return response;
     }
 
+    private static MockHttpServletResponse callVia(RateLimitFilter filter, String proxy, String header, String value)
+            throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/invoices/pdf");
+        request.setRemoteAddr(proxy);
+        if (value != null) {
+            request.addHeader(header, value);
+        }
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        filter.doFilter(request, response, new MockFilterChain());
+        return response;
+    }
+
+    @Test
+    void enTeteDeLaPlateformeConfigureDistingueLesClients() throws Exception {
+        Clock clock = Clock.fixed(Instant.parse("2026-11-26T10:00:10Z"), ZoneOffset.UTC);
+        RateLimitFilter filter = new RateLimitFilter(new ApiProperties(List.of(), 1024, 1, "CF-Connecting-IP"), clock);
+
+        // Même proxy, deux clients différents selon l'en-tête de la plateforme.
+        assertEquals(200, callVia(filter, "10.0.0.5", "CF-Connecting-IP", "203.0.113.10").getStatus());
+        assertEquals(429, callVia(filter, "10.0.0.5", "CF-Connecting-IP", "203.0.113.10").getStatus());
+        assertEquals(200, callVia(filter, "10.0.0.5", "CF-Connecting-IP", "198.51.100.20").getStatus());
+        // Liste éventuelle : seule la première adresse compte.
+        assertEquals(429, callVia(filter, "10.0.0.5", "CF-Connecting-IP", "198.51.100.20, 10.0.0.9").getStatus());
+        // En-tête absent : l'adresse de connexion est utilisée.
+        assertEquals(200, callVia(filter, "10.0.0.6", "CF-Connecting-IP", null).getStatus());
+    }
+
+    @Test
+    void enTeteNonConfigureIgnore() throws Exception {
+        Clock clock = Clock.fixed(Instant.parse("2026-11-26T10:00:10Z"), ZoneOffset.UTC);
+        RateLimitFilter filter = new RateLimitFilter(new ApiProperties(List.of(), 1024, 1, null), clock);
+        assertEquals(200, callVia(filter, "10.0.0.5", "CF-Connecting-IP", "203.0.113.10").getStatus());
+        // Sans réglage, un client ne peut pas changer d'adresse par cet en-tête.
+        assertEquals(429, callVia(filter, "10.0.0.5", "CF-Connecting-IP", "198.51.100.20").getStatus());
+    }
+
     @Test
     void bloqueAuDelaDeLaLimiteParIp() throws Exception {
         Clock clock = Clock.fixed(Instant.parse("2026-11-26T10:00:10Z"), ZoneOffset.UTC);
-        RateLimitFilter filter = new RateLimitFilter(new ApiProperties(List.of(), 1024, 2), clock);
+        RateLimitFilter filter = new RateLimitFilter(new ApiProperties(List.of(), 1024, 2, null), clock);
 
         assertEquals(200, call(filter, "10.0.0.1").getStatus());
         assertEquals(200, call(filter, "10.0.0.1").getStatus());
@@ -42,7 +78,7 @@ class RateLimitFilterTest {
     @Test
     void nouvelleFenetreApresUneMinute() throws Exception {
         MutableClock clock = new MutableClock(Instant.parse("2026-11-26T10:00:10Z"));
-        RateLimitFilter filter = new RateLimitFilter(new ApiProperties(List.of(), 1024, 1), clock);
+        RateLimitFilter filter = new RateLimitFilter(new ApiProperties(List.of(), 1024, 1, null), clock);
 
         assertEquals(200, call(filter, "10.0.0.1").getStatus());
         assertEquals(429, call(filter, "10.0.0.1").getStatus());

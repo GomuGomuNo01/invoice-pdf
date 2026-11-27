@@ -1,0 +1,39 @@
+# Description du service pour Render (Blueprint) : un seul conteneur, offre gratuite.
+# Création : tableau de bord Render > New > Blueprint > ce dépôt. Voir le guide de mise en ligne.
+# Render déploie automatiquement chaque nouveau commit de main (qui n'accepte que du code passé par la CI).
+services:
+  - type: web
+    name: invoice-pdf
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      # 512 Mo de mémoire sur l'offre gratuite : deux rendus PDF simultanés au maximum.
+      - key: INVOICE_API_MAX_CONCURRENT_RENDERS
+        value: "2"
+      - key: INVOICE_RATE_LIMIT_PER_MINUTE
+        value: "30"
+      # À ne renseigner qu'après vérification (scripts/verifier-en-ligne.sh) : en-tête d'adresse réelle.
+      - key: INVOICE_API_CLIENT_IP_HEADER
+        sync: false
+      # Mentions légales du site, à saisir dans le tableau de bord (non versionnées).
+      - key: INVOICE_SITE_EDITOR_NAME
+        sync: false
+      - key: INVOICE_SITE_EDITOR_ADDRESS
+        sync: false
+      - key: INVOICE_SITE_EDITOR_EMAIL
+        sync: false
+      - key: INVOICE_SITE_PUBLICATION_DIRECTOR
+        sync: false
+      - key: INVOICE_SITE_HOST_NAME
+        sync: false
+      - key: INVOICE_SITE_HOST_ADDRESS
+        sync: false
+      - key: INVOICE_SITE_HOST_CONTACT
+        sync: false

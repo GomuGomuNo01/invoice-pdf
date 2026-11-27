@@ -107,3 +107,5 @@ jobs:
         run: sh scripts/tester-images.sh
       - name: Essai de la pile de production (Caddy, HTTPS, accès restreint)
         run: sh scripts/tester-prod.sh
+      - name: Essai de l'image unique (Render, 512 Mo)
+        run: sh scripts/tester-image-unique.sh

@@ -48,6 +48,10 @@ invoice:
     cors-allowed-origins: "${INVOICE_CORS_ALLOWED_ORIGINS:http://localhost:5173}"
     max-request-bytes: 262144
     rate-limit-per-minute: ${INVOICE_RATE_LIMIT_PER_MINUTE:30}
+    # En-tête d'adresse réelle posé par la plateforme (ex. CF-Connecting-IP), vide par défaut.
+    client-ip-header: "${INVOICE_API_CLIENT_IP_HEADER:}"
+    # Rendus PDF simultanés au maximum (mémoire).
+    max-concurrent-renders: ${INVOICE_API_MAX_CONCURRENT_RENDERS:4}
 
 management:
   endpoints:
