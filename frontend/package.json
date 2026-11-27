@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "captures": "playwright test -c playwright.captures.config.ts"
   },
   "dependencies": {
     "react": "19.3.1",

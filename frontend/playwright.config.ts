@@ -8,6 +8,8 @@ const isWindows = process.platform === 'win32';
  */
 export default defineConfig({
   testDir: './e2e',
+  // Les captures d'écran du dépôt ont leur propre configuration (npm run captures).
+  testIgnore: '**/captures.spec.ts',
   timeout: 60_000,
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
