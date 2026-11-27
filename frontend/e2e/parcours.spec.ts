@@ -77,3 +77,28 @@ test('accessibilité en mode sombre, avec erreurs affichées', async ({ page }) 
   const serious = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
   expect(serious, JSON.stringify(serious.map((v) => ({ id: v.id, nodes: v.nodes.length })), null, 2)).toEqual([]);
 });
+
+test('thème sombre forcé et confirmation de « Recommencer » : accessibles et fonctionnels', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.goto('/');
+  await fillInvoice(page);
+  // Automatique -> Clair -> Sombre
+  await page.getByRole('button', { name: /Thème : Automatique/ }).click();
+  await page.getByRole('button', { name: /Thème : Clair/ }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+  await page.getByRole('button', { name: 'Recommencer' }).click();
+  const fenetre = page.getByRole('dialog', { name: 'Recommencer' });
+  await expect(fenetre).toBeVisible();
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+  const serious = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+  expect(serious, JSON.stringify(serious.map((v) => ({ id: v.id, nodes: v.nodes.length })), null, 2)).toEqual([]);
+
+  await fenetre.getByRole('button', { name: 'Nouvelle facture (garder mes coordonnées)' }).click();
+  await expect(page.getByLabel('Nom du client')).toHaveValue('');
+  await expect(page.getByLabel('Votre nom ou votre entreprise')).toHaveValue('Atelier Dupont');
+
+  // Le choix de thème survit au rechargement, sans éclair de la mauvaise couleur.
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+});

@@ -906,3 +906,40 @@ textarea.field__control {
     margin-bottom: var(--space-3);
   }
 }
+
+/* ---------- Barre du haut : thème et recommencer ---------- */
+.topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+@media (max-width: 420px) {
+  /* Sur petit écran, l'icône suffit ; le nom accessible du bouton annonce le thème. */
+  .theme-toggle__label {
+    display: none;
+  }
+}
+
+/* ---------- Bouton d'action destructrice ---------- */
+.button--danger {
+  background: transparent;
+  color: var(--ui-danger);
+  border: 1px solid var(--ui-danger);
+}
+.button--danger:hover:not(:disabled) {
+  background: var(--ui-danger-soft);
+}
+
+/* ---------- Confirmation de remise à zéro ---------- */
+.legal--compact {
+  width: min(460px, 100%);
+}
+.reset-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.reset-actions .button {
+  justify-content: center;
+}

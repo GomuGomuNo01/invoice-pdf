@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { fetchSite, type SiteInfo } from '../api/client';
 import { Icon } from './Icon';
+import { Modal } from './Modal';
 
 export type LegalPage = 'mentions' | 'confidentialite';
 
@@ -19,21 +20,10 @@ function Value({ children }: { children: string | null | undefined }) {
   return children ? <>{children}</> : <span className="legal__missing">À compléter</span>;
 }
 
-/**
- * Fenêtre modale des pages légales. Le focus y est placé à l'ouverture, Échap la ferme,
- * et le focus revient ensuite sur le lien qui l'a ouverte.
- */
+/** Pages légales du site, dans une fenêtre modale (voir Modal). */
 export function LegalDialog({ page, onClose, onClearIssuer }: Props) {
   const [site, setSite] = useState<SiteInfo | null>(null);
   const [cleared, setCleared] = useState(false);
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const titleRef = useRef<HTMLHeadingElement>(null);
-
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    titleRef.current?.focus();
-    return () => previous?.focus();
-  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -42,35 +32,6 @@ export function LegalDialog({ page, onClose, onClearIssuer }: Props) {
       .catch(() => setSite(null));
     return () => controller.abort();
   }, []);
-
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose();
-      // Le focus reste dans la fenêtre (Tab et Maj+Tab bouclent).
-      if (event.key === 'Tab' && dialogRef.current) {
-        const focusables = Array.from(
-          dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], [tabindex="0"]'),
-        );
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        if (!first || !last) return;
-        const active = document.activeElement as HTMLElement | null;
-        // Focus hors de la boucle (titre à l'ouverture, ou ailleurs) : on y revient dans le bon sens.
-        if (!active || !focusables.includes(active)) {
-          event.preventDefault();
-          (event.shiftKey ? last : first).focus();
-        } else if (event.shiftKey && active === first) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && active === last) {
-          event.preventDefault();
-          first.focus();
-        }
-      }
-    }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
 
   let body: ReactNode;
   if (page === 'mentions') {
@@ -84,7 +45,11 @@ export function LegalDialog({ page, onClose, onClearIssuer }: Props) {
           </dd>
           <dt>Adresse</dt>
           <dd>
-            <Value>{site?.editorAddress}</Value>
+            {/* Éditeur non professionnel : l'adresse peut ne pas être publiée si l'identité est
+                communiquée à l'hébergeur (le compte Render la porte). */}
+            {site?.editorAddress ?? (
+              <span className="legal__missing">Non publiée (identité communiquée à l'hébergeur)</span>
+            )}
           </dd>
           <dt>Contact</dt>
           <dd>
@@ -140,7 +105,10 @@ export function LegalDialog({ page, onClose, onClearIssuer }: Props) {
           {cleared ? 'Coordonnées effacées' : 'Effacer mes coordonnées mémorisées'}
         </button>
         <h3>Aucun suivi</h3>
-        <p>Aucun cookie, aucune mesure d'audience, aucun service tiers. Les polices et scripts sont servis par le site.</p>
+        <p>
+          Aucun cookie, aucune mesure d'audience, aucun service tiers. Les polices et scripts sont servis par le site. Le
+          choix du thème (clair, sombre ou automatique) est gardé dans ce navigateur.
+        </p>
         <h3>Journaux techniques</h3>
         <p>
           Pour la sécurité du service, le serveur garde pour une durée limitée l'adresse IP et la date des requêtes,
@@ -155,25 +123,8 @@ export function LegalDialog({ page, onClose, onClearIssuer }: Props) {
   }
 
   return (
-    // Clic sur le fond : confort à la souris. Au clavier, Échap et le bouton Fermer font la même chose.
-    <div
-      className="legal-backdrop"
-      role="presentation"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div ref={dialogRef} className="legal" role="dialog" aria-modal="true" aria-labelledby="legal-title">
-        <div className="legal__head">
-          <h2 id="legal-title" ref={titleRef} tabIndex={-1}>
-            {TITLES[page]}
-          </h2>
-          <button type="button" className="button button--quiet button--small" onClick={onClose}>
-            Fermer
-          </button>
-        </div>
-        <div className="legal__body">{body}</div>
-      </div>
-    </div>
+    <Modal title={TITLES[page]} onClose={onClose}>
+      {body}
+    </Modal>
   );
 }

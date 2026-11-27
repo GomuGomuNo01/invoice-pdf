@@ -31,6 +31,7 @@ let fetchMock: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   window.localStorage.clear();
+  document.documentElement.removeAttribute('data-theme');
   fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.endsWith('/api/v1/issuer')) return jsonResponse(issuer);
@@ -296,5 +297,86 @@ describe('parcours de saisie', () => {
     expect(within(fenetre).getByRole('button', { name: 'Coordonnées effacées' })).toBeDisabled();
     expect(screen.getByLabelText(/Votre nom ou votre entreprise/)).toHaveValue('');
     expect(window.localStorage.length).toBe(0);
+  });
+
+  it("Recommencer, avec seulement les coordonnées remplies, explique que la facture est vide et garde l'émetteur", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByDisplayValue('Atelier Exemple');
+
+    await user.click(screen.getByRole('button', { name: 'Recommencer' }));
+    const fenetre = screen.getByRole('dialog', { name: 'Recommencer' });
+    expect(fenetre).toHaveTextContent('La facture en cours est déjà vide.');
+
+    await user.click(within(fenetre).getByRole('button', { name: 'Nouvelle facture (garder mes coordonnées)' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Votre nom ou votre entreprise/)).toHaveValue('Atelier Exemple');
+    expect(screen.getByRole('status')).toHaveTextContent('Nouvelle facture prête. Vos coordonnées sont gardées.');
+  });
+
+  it('Recommencer efface la facture en cours sans boîte native', async () => {
+    const confirmNatif = vi.spyOn(window, 'confirm');
+    const user = userEvent.setup();
+    render(<App />);
+    await fillValidInvoice(user);
+
+    await user.click(screen.getByRole('button', { name: 'Recommencer' }));
+    const fenetre = screen.getByRole('dialog', { name: 'Recommencer' });
+    expect(fenetre).toHaveTextContent('La facture en cours sera effacée');
+    await user.click(within(fenetre).getByRole('button', { name: 'Nouvelle facture (garder mes coordonnées)' }));
+
+    expect(screen.getByLabelText(/Nom du client/)).toHaveValue('');
+    expect(screen.getByLabelText(/Numéro de facture/)).toHaveValue('');
+    expect(screen.getByLabelText(/Description/)).toHaveValue('');
+    expect(screen.getByLabelText(/Votre nom ou votre entreprise/)).toHaveValue('Atelier Exemple');
+    expect(confirmNatif).not.toHaveBeenCalled();
+  });
+
+  it('Tout effacer vide aussi les coordonnées mémorisées', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const nom = await screen.findByDisplayValue('Atelier Exemple');
+    await user.type(nom, ' et fils');
+    expect(window.localStorage.getItem('invoice-pdf.issuer.v1')).not.toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Recommencer' }));
+    await user.click(screen.getByRole('button', { name: 'Tout effacer, y compris mes coordonnées' }));
+
+    expect(screen.getByLabelText(/Votre nom ou votre entreprise/)).toHaveValue('');
+    expect(window.localStorage.getItem('invoice-pdf.issuer.v1')).toBeNull();
+    expect(screen.getByRole('status')).toHaveTextContent('Tout est effacé.');
+  });
+
+  it('Annuler ou Échap referme la confirmation sans rien effacer', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await fillValidInvoice(user);
+    await user.click(screen.getByRole('button', { name: 'Recommencer' }));
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Nom du client/)).toHaveValue('Société Cliente');
+  });
+
+  it("change de thème : automatique (appareil), clair, sombre, et s'en souvient", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<App />);
+    const racine = document.documentElement;
+    expect(racine).not.toHaveAttribute('data-theme');
+
+    await user.click(screen.getByRole('button', { name: /Thème : Automatique/ }));
+    expect(racine).toHaveAttribute('data-theme', 'light');
+    await user.click(screen.getByRole('button', { name: /Thème : Clair/ }));
+    expect(racine).toHaveAttribute('data-theme', 'dark');
+    expect(window.localStorage.getItem('invoice-pdf.theme')).toBe('dark');
+
+    unmount();
+    racine.removeAttribute('data-theme');
+    render(<App />);
+    expect(screen.getByRole('button', { name: /Thème : Sombre/ })).toBeInTheDocument();
+    expect(racine).toHaveAttribute('data-theme', 'dark');
+
+    await user.click(screen.getByRole('button', { name: /Thème : Sombre/ }));
+    expect(racine).not.toHaveAttribute('data-theme');
+    expect(window.localStorage.getItem('invoice-pdf.theme')).toBeNull();
   });
 });
